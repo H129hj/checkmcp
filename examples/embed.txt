@@ -1,0 +1,3 @@
+<!-- markdown: [![MCP Score 82 B](https://checkmcp.com/badge/mcp-deepwiki-com.svg)](https://checkmcp.com/mcp/mcp-deepwiki-com) -->
+<!-- html: <a href="https://checkmcp.com/mcp/mcp-deepwiki-com"><img src="https://checkmcp.com/badge/mcp-deepwiki-com.svg" alt="MCP Score 82 B"></a> -->
+<!-- url: https://checkmcp.com/badge/mcp-deepwiki-com.svg -->

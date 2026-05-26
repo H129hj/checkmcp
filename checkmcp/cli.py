@@ -1,9 +1,17 @@
 """CLI CheckMCP — `checkmcp <url>` : audit + MCP Score + rapport causal Lighthouse-style."""
 import argparse, json, sys
 from . import __version__
+import re
 from .probe import probe
 from .score import score, W
 from .optimize import optimize
+from .badge import badge_svg, embed_snippets
+from .page import render as render_page
+
+
+def _slug(url):
+    h = re.sub(r"^https?://", "", url).split("/")[0]
+    return re.sub(r"[^a-z0-9]+", "-", h.lower()).strip("-")
 
 BAR = lambda s: ("█" * round(s / 10)).ljust(10, "░")
 PILL = {"security": "Sécurité", "tool_design": "Tool Design", "desc_schema": "Desc/Schema",
@@ -55,7 +63,9 @@ def main(argv=None):
     ap = argparse.ArgumentParser(prog="checkmcp", description="Audit & score qualité/sécurité/context-cost d'un serveur MCP.")
     ap.add_argument("url", help="URL de l'endpoint MCP (streamable-http), ex: https://mcp.deepwiki.com/mcp")
     ap.add_argument("--token", help="Bearer token si le serveur exige l'auth", default=None)
-    ap.add_argument("--json", action="store_true", help="Sortie JSON (report.json) au lieu du rapport humain")
+    ap.add_argument("--json", action="store_true", help="Sortie JSON (report.json)")
+    ap.add_argument("--badge", action="store_true", help="Émet le badge SVG + les snippets d'embed")
+    ap.add_argument("--html", action="store_true", help="Émet la page SEO/GEO (JSON-LD) du serveur")
     ap.add_argument("--version", action="version", version=f"checkmcp {__version__}")
     a = ap.parse_args(argv)
 
@@ -68,7 +78,14 @@ def main(argv=None):
     res["optimize"] = optimize(p)
     res["url"] = a.url
     res["server"] = p.get("server", {})
-    if a.json:
+    slug = _slug(a.url)
+    if a.badge:
+        print(badge_svg(res["score"], res["grade"]))
+        for k, v in embed_snippets(slug, res["score"], res["grade"]).items():
+            print(f"<!-- {k}: {v} -->", file=sys.stderr)
+    elif a.html:
+        print(render_page(a.url, slug, res))
+    elif a.json:
         print(json.dumps(res, indent=2, ensure_ascii=False))
     else:
         print(human(a.url, res))
