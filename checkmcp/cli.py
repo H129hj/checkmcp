@@ -66,6 +66,7 @@ def main(argv=None):
     ap.add_argument("--json", action="store_true", help="Sortie JSON (report.json)")
     ap.add_argument("--badge", action="store_true", help="Émet le badge SVG + les snippets d'embed")
     ap.add_argument("--html", action="store_true", help="Émet la page SEO/GEO (JSON-LD) du serveur")
+    ap.add_argument("--repo", help="owner/name ou URL GitHub → maintenance/liveness/licence (largeur)", default=None)
     ap.add_argument("--version", action="version", version=f"checkmcp {__version__}")
     a = ap.parse_args(argv)
 
@@ -76,6 +77,12 @@ def main(argv=None):
         return 2
     res = score(p)
     res["optimize"] = optimize(p)
+    if a.repo:
+        from .repo import fetch as repo_fetch, findings as repo_findings
+        meta = repo_fetch(a.repo)
+        res["maintenance"] = meta
+        res["findings"] += repo_findings(meta)
+        res["findings"].sort(key=lambda x: x["delta"], reverse=True)
     res["url"] = a.url
     res["server"] = p.get("server", {})
     slug = _slug(a.url)

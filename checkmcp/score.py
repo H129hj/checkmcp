@@ -152,6 +152,21 @@ def score(p):
         add("compliance", "MEDIUM", f"erreurs JSON-RPC conformes {sum(jc)}/{len(jc)}",
             "erreurs non conformes à la spec JSON-RPC", "clients cassent de façon imprévisible", W["compliance"] * (100 - m52) / 100 * 0.35)
 
+    # ---------- Largeur cheap : cohérence capabilities + découverte OAuth ----------
+    cc = p.get("capabilities_coherence", {})
+    if cc.get("declares_resources") and not cc.get("has_resources"):
+        add("compliance", "MEDIUM", "capability 'resources' déclarée mais resources/list vide",
+            "capabilities incohérentes vs comportement réel", "clients induits en erreur", W["compliance"] * 0.10)
+        p5 = max(0, p5 - 6)
+    if cc.get("declares_prompts") and not cc.get("has_prompts"):
+        add("compliance", "MEDIUM", "capability 'prompts' déclarée mais prompts/list vide",
+            "capabilities incohérentes", "clients induits en erreur", W["compliance"] * 0.10)
+        p5 = max(0, p5 - 6)
+    wk = p.get("well_known", {})
+    if not (wk.get("oauth_protected_resource") or wk.get("oauth_authorization_server")):
+        add("compliance", "LOW", "pas de découverte OAuth (.well-known absent)",
+            "RFC 9728/8414 non exposés", "auth non auto-découvrable par les clients", W["compliance"] * 0.05)
+
     # ---------- P6 Reliability (T1 single-shot → NON crédité au composite) ----------
     lat = max(p.get("latency", {}).get("initialize_ms", 0), p.get("latency", {}).get("tools_list_ms", 0))
     p6 = _band(lat, [(300, 100), (1000, 80), (3000, 50), (10**9, 20)])

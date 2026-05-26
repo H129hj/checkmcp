@@ -1,6 +1,6 @@
 """MCP probe — handshake + tools/resources/prompts + JSON-RPC conformance + latence.
 Transport: streamable-HTTP (POST <url>). stdlib uniquement (urllib)."""
-import json, time, urllib.request, urllib.error
+import json, time, re, urllib.request, urllib.error
 
 
 def _post(url, body, sid=None, token=None, timeout=60):
@@ -46,6 +46,24 @@ def _list(url, sid, token, method, key):
     return items, pages, (pages > 1)
 
 
+def _get(url, timeout=10):
+    try:
+        r = urllib.request.urlopen(urllib.request.Request(url, headers={"Accept": "application/json"}), timeout=timeout)
+        return r.status, r.read().decode()
+    except urllib.error.HTTPError as e:
+        return e.code, ""
+    except Exception:
+        return 0, ""
+
+
+def _well_known(url):
+    base = re.sub(r"/mcp/?$", "", url) or url
+    base = base.rstrip("/")
+    pr, _ = _get(base + "/.well-known/oauth-protected-resource")
+    as_, _ = _get(base + "/.well-known/oauth-authorization-server")
+    return {"oauth_protected_resource": pr == 200, "oauth_authorization_server": as_ == 200}
+
+
 def probe(url, token=None):
     """Retourne le Probe artifact (dict) ou {error:...}."""
     st, sid, raw, init_ms = _post(url, {"jsonrpc": "2.0", "id": 1, "method": "initialize",
@@ -82,5 +100,10 @@ def probe(url, token=None):
         "tools": tools, "resources": resources, "prompts": prompts,
         "tools_paginated": tools_paginated,
         "jsonrpc_conformance": jsonrpc,
+        "well_known": _well_known(url),
+        "capabilities_coherence": {
+            "declares_resources": "resources" in caps, "has_resources": bool(resources),
+            "declares_prompts": "prompts" in caps, "has_prompts": bool(prompts),
+        },
         "latency": {"initialize_ms": round(init_ms), "tools_list_ms": round(tools_ms)},
     }
