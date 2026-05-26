@@ -3,7 +3,7 @@ Transport: streamable-HTTP (POST <url>). stdlib uniquement (urllib)."""
 import json, time, re, urllib.request, urllib.error
 
 
-def _post(url, body, sid=None, token=None, timeout=60):
+def _post(url, body, sid=None, token=None, timeout=25):
     h = {"Content-Type": "application/json", "Accept": "application/json, text/event-stream"}
     if token:
         h["Authorization"] = "Bearer " + token
@@ -49,7 +49,7 @@ def _list(url, sid, token, method, key):
     return items, pages, (pages > 1)
 
 
-def _get(url, timeout=10):
+def _get(url, timeout=4):
     try:
         r = urllib.request.urlopen(urllib.request.Request(url, headers={"Accept": "application/json"}), timeout=timeout)
         return r.status, r.read().decode()
