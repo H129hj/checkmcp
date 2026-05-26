@@ -13,8 +13,22 @@ from checkmcp.score import score
 from checkmcp.optimize import optimize
 from checkmcp.badge import badge_svg
 from checkmcp.page import render as render_page
+from checkmcp.repo import fetch as repo_fetch, findings as repo_findings
 
 TTL = 6 * 3600
+GH_TOKEN = os.environ.get("GITHUB_TOKEN")
+_repo_cache = {}
+
+
+def repo_for(repo):
+    now = time.time()
+    if repo in _repo_cache and now - _repo_cache[repo][0] < TTL:
+        return _repo_cache[repo][1]
+    m = repo_fetch(repo, GH_TOKEN)
+    if not m.get("error"):
+        m["findings"] = repo_findings(m)
+    _repo_cache[repo] = (now, m)
+    return m
 PORT = int(os.environ.get("CHECKMCP_PORT", "8799"))
 CATALOG = os.environ.get("CHECKMCP_CATALOG", os.path.join(os.path.dirname(os.path.abspath(__file__)), "catalog.json"))
 _cache = {}            # url -> (ts, result)
@@ -83,6 +97,13 @@ class H(BaseHTTPRequestHandler):
 
         if u.path == "/health":
             return self._send(200, json.dumps({"status": "ok", "version": __version__, "cached": len(_cache), "catalog": len(_catalog)}), "application/json")
+
+        if u.path == "/api/repo":
+            repo = qs.get("repo", [None])[0]
+            if not repo:
+                return self._send(400, json.dumps({"error": "param ?repo= requis (owner/name ou URL github)"}), "application/json")
+            m = repo_for(repo)
+            return self._send(200 if not m.get("error") else 502, json.dumps(m, ensure_ascii=False), "application/json")
 
         if u.path == "/api/score" or u.path == "/audit":
             url = qs.get("url", [None])[0]
