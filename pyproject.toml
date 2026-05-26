@@ -1,0 +1,23 @@
+[project]
+name = "checkmcp"
+version = "0.1.0"
+description = "CheckMCP — vendor-neutral quality/security/context-cost audit & score for any MCP server."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Hugo" }]
+keywords = ["mcp", "model-context-protocol", "audit", "score", "lint", "security"]
+dependencies = []  # stdlib-only core (urllib). tiktoken optional for exact token counts.
+
+[project.optional-dependencies]
+exact-tokens = ["tiktoken>=0.7"]
+
+[project.scripts]
+checkmcp = "checkmcp.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["checkmcp"]
