@@ -45,6 +45,12 @@ def human(url, res):
     for f in res["findings"]:
         out.append(f"  [{f['severity']:<8} Δ{f['delta']:>4}] {f['measured']}")
         out.append(f"     ↳ {f['mechanism']} → {f['effect']}")
+    mt = res.get("maintenance")
+    if mt and not mt.get("error"):
+        lic = mt.get("license") or "aucune licence"
+        age = f"{mt['pushed_days']}j" if mt.get("pushed_days") is not None else "?"
+        out.append("")
+        out.append(f"  MAINTENANCE ({mt.get('repo','?')}) — dernier push {age} · {lic} · ⭐{mt.get('stars',0)}" + (" · ⚠️ ARCHIVÉ" if mt.get("archived") else ""))
     opt = res.get("optimize")
     if opt and opt["suggestions"]:
         out.append("")

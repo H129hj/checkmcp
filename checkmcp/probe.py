@@ -16,6 +16,9 @@ def _post(url, body, sid=None, token=None, timeout=60):
         return r.status, r.headers.get("mcp-session-id"), r.read().decode(), (time.time() - t0) * 1000
     except urllib.error.HTTPError as e:
         return e.code, None, e.read().decode(), (time.time() - t0) * 1000
+    except Exception:
+        # URLError (DNS/refus), timeout socket, etc. → status 0 (injoignable), pas de crash
+        return 0, None, "", (time.time() - t0) * 1000
 
 
 def _parse(raw):
