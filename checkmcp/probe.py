@@ -3,7 +3,7 @@ Transport: streamable-HTTP (POST <url>). stdlib uniquement (urllib)."""
 import json, time, urllib.request, urllib.error
 
 
-def _post(url, body, sid=None, token=None, timeout=40):
+def _post(url, body, sid=None, token=None, timeout=60):
     h = {"Content-Type": "application/json", "Accept": "application/json, text/event-stream"}
     if token:
         h["Authorization"] = "Bearer " + token

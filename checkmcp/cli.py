@@ -3,6 +3,7 @@ import argparse, json, sys
 from . import __version__
 from .probe import probe
 from .score import score, W
+from .optimize import optimize
 
 BAR = lambda s: ("█" * round(s / 10)).ljust(10, "░")
 PILL = {"security": "Sécurité", "tool_design": "Tool Design", "desc_schema": "Desc/Schema",
@@ -36,6 +37,16 @@ def human(url, res):
     for f in res["findings"]:
         out.append(f"  [{f['severity']:<8} Δ{f['delta']:>4}] {f['measured']}")
         out.append(f"     ↳ {f['mechanism']} → {f['effect']}")
+    opt = res.get("optimize")
+    if opt and opt["suggestions"]:
+        out.append("")
+        out.append(f"  OPTIMISATIONS COMPOSITE  ({opt['current_tools']} → ~{opt['projected_tools']} outils · ~{opt['est_tokens_saved']//1000 or opt['est_tokens_saved']}{'k' if opt['est_tokens_saved']>=1000 else ''} tok économisés)")
+        out.append("  " + "─" * 52)
+        for s in opt["suggestions"][:6]:
+            head = ", ".join(s["tools"][:4]) + ("…" if len(s["tools"]) > 4 else "")
+            out.append(f"  [{s['severity']:<6}] {head}")
+            out.append(f"     → {s['proposed']}")
+            out.append(f"       {s['why']}")
     out.append("")
     return "\n".join(out)
 
@@ -54,6 +65,7 @@ def main(argv=None):
         print(json.dumps(err) if a.json else f"❌ {a.url} — {p['error']}", file=sys.stderr)
         return 2
     res = score(p)
+    res["optimize"] = optimize(p)
     res["url"] = a.url
     res["server"] = p.get("server", {})
     if a.json:
