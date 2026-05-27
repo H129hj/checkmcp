@@ -19,13 +19,17 @@ from checkmcp.score import score
 
 BASE = os.environ.get("CHECKMCP_LLM_BASE", "https://api.groq.com/openai/v1")
 KEY = os.environ.get("CHECKMCP_LLM_KEY", "")
-MODEL = os.environ.get("CHECKMCP_LLM_MODEL", "llama-3.3-70b-versatile")
-MAX_CANDIDATES = 60   # borne le catalogue présenté (équité inter-serveurs + limites de contexte)
-MAX_TRIALS = 18       # outils échantillonnés par serveur
+# v2 : juge ≠ rédacteur pour casser la circularité. CHECKMCP_LLM_MODEL = défaut commun (compat v1).
+_DEFAULT = os.environ.get("CHECKMCP_LLM_MODEL", "llama-3.3-70b-versatile")
+AUTHOR_MODEL = os.environ.get("CHECKMCP_LLM_AUTHOR_MODEL", _DEFAULT)
+JUDGE_MODEL = os.environ.get("CHECKMCP_LLM_JUDGE_MODEL", _DEFAULT)
+# v2 : 0 = catalogue COMPLET (teste réellement le sprawl). Les modèles à grand contexte (Gemini) l'encaissent.
+MAX_CANDIDATES = int(os.environ.get("CHECKMCP_MAX_CANDIDATES", "0"))
+MAX_TRIALS = int(os.environ.get("CHECKMCP_MAX_TRIALS", "18"))
 
 
-def _chat(messages, temperature=0.0, max_tokens=400):
-    body = json.dumps({"model": MODEL, "messages": messages,
+def _chat(messages, model, temperature=0.0, max_tokens=512):
+    body = json.dumps({"model": model, "messages": messages,
                        "temperature": temperature, "max_tokens": max_tokens}).encode()
     req = urllib.request.Request(BASE.rstrip("/") + "/chat/completions", data=body,
                                  headers={"Authorization": f"Bearer {KEY}", "Content-Type": "application/json"})
@@ -47,17 +51,23 @@ def _usable_tools(tools):
 
 
 def _author_task(tool):
-    msg = [{"role": "system", "content": "Tu génères une requête utilisateur réaliste en une phrase qui devrait "
-            "déclencher l'outil décrit, SANS jamais citer le nom technique de l'outil ni ses paramètres. "
-            "Réponds uniquement par la requête utilisateur."},
-           {"role": "user", "content": f"Outil: {tool['name']}\nDescription: {tool.get('description','')}\n\nRequête utilisateur:"}]
-    return _chat(msg, temperature=0.8, max_tokens=120)
+    # v2 : on demande le BUT de l'utilisateur (intention métier), pas une paraphrase de l'opération,
+    # pour réduire l'appariement lexical trivial entre la tâche et la description.
+    msg = [{"role": "system", "content": "Tu incarnes un utilisateur qui a un BESOIN métier réel. À partir de l'outil "
+            "décrit, formule en une phrase ce que l'utilisateur VEUT ACCOMPLIR (son objectif/intention), de façon "
+            "naturelle et concrète, SANS citer le nom technique de l'outil, ses paramètres, ni recopier sa description. "
+            "Évite de réutiliser les mots-clés techniques. Réponds uniquement par la phrase de l'utilisateur."},
+           {"role": "user", "content": f"Outil: {tool['name']}\nDescription: {tool.get('description','')}\n\nObjectif utilisateur:"}]
+    return _chat(msg, AUTHOR_MODEL, temperature=0.8, max_tokens=200)
 
 
 def _catalog(tools, target, k):
-    others = [t for t in tools if t["name"] != target["name"]]
-    random.shuffle(others)
-    chosen = [target] + others[:k - 1]
+    if not k or k >= len(tools):          # catalogue COMPLET (v2 par défaut)
+        chosen = list(tools)
+    else:
+        others = [t for t in tools if t["name"] != target["name"]]
+        random.shuffle(others)
+        chosen = [target] + others[:k - 1]
     random.shuffle(chosen)
     lines = [f"- {t['name']}: {(t.get('description') or '')[:160]}" for t in chosen]
     return "\n".join(lines)
@@ -68,7 +78,7 @@ def _select(task, catalog):
             "utilisateur et un catalogue d'outils (nom: description). Réponds UNIQUEMENT par le nom exact d'un "
             "seul outil du catalogue, ou 'NONE' si aucun ne convient. Pas d'explication."},
            {"role": "user", "content": f"Requête: {task}\n\nCatalogue:\n{catalog}\n\nNom de l'outil:"}]
-    out = _chat(msg, temperature=0.0, max_tokens=40)
+    out = _chat(msg, JUDGE_MODEL, temperature=0.0, max_tokens=512)
     return out.strip().strip("`\"' ").split()[0] if out else None
 
 
@@ -82,7 +92,8 @@ def measure_server(name, url, token=None, max_trials=MAX_TRIALS, seed=42):
     if len(tools) < 3:
         return {"name": name, "url": url, "error": f"trop peu d'outils décrits ({len(tools)})"}
     sample = random.sample(tools, min(max_trials, len(tools)))
-    k = min(MAX_CANDIDATES, len(tools))
+    k = MAX_CANDIDATES if MAX_CANDIDATES else len(tools)   # 0 = catalogue complet
+    k = min(k, len(tools))
     correct = total = 0
     for t in sample:
         task = _author_task(t)
@@ -96,9 +107,10 @@ def measure_server(name, url, token=None, max_trials=MAX_TRIALS, seed=42):
             correct += 1
     acc = correct / total if total else None
     return {"name": name, "url": url, "n_tools": len(p.get("tools", [])),
-            "candidate_set": k, "trials": total, "selection_accuracy": acc,
+            "candidate_set": k, "full_catalog": (k == len(tools)), "trials": total, "selection_accuracy": acc,
             "score": r["score"], "grade": r["grade"], "pillars": r["pillars"],
-            "tokens": r["facts"]["tools_list_tokens"]}
+            "tokens": r["facts"]["tools_list_tokens"],
+            "author_model": AUTHOR_MODEL, "judge_model": JUDGE_MODEL}
 
 
 def run(targets, out_path):
@@ -116,17 +128,27 @@ def run(targets, out_path):
     return rows
 
 
+def _load_targets():
+    """targets.json = [{name,url,token?,env_token?}] ; sinon liste flotte+publics par défaut."""
+    here = os.path.dirname(os.path.abspath(__file__))
+    path = os.environ.get("CHECKMCP_TARGETS", os.path.join(here, "targets.json"))
+    if os.path.exists(path):
+        out = []
+        for t in json.load(open(path)):
+            tok = t.get("token") or (os.environ.get(t["env_token"]) if t.get("env_token") else None)
+            out.append((t["name"], t["url"], tok))
+        return out
+    DP = os.environ.get("DROP_PILOT_MCP_TOKEN")
+    return [("Symphony", "http://localhost:8787/mcp", None),
+            ("CourseLighting", "http://localhost:8790/mcp", None),
+            ("War-MCP", "http://localhost:8888/mcp", None),
+            ("Drop-Pilot", "http://localhost:8765/mcp", DP),
+            ("DeepWiki", "https://mcp.deepwiki.com/mcp", None),
+            ("Context7", "https://mcp.context7.com/mcp", None),
+            ("Chainflip", "https://chainflip-broker.io/mcp", None)]
+
+
 if __name__ == "__main__":
     if not KEY:
         print("CHECKMCP_LLM_KEY manquant", file=sys.stderr); sys.exit(1)
-    DP = os.environ.get("DROP_PILOT_MCP_TOKEN")
-    TARGETS = [
-        ("Symphony", "http://localhost:8787/mcp", None),
-        ("CourseLighting", "http://localhost:8790/mcp", None),
-        ("War-MCP", "http://localhost:8888/mcp", None),
-        ("Drop-Pilot", "http://localhost:8765/mcp", DP),
-        ("DeepWiki", "https://mcp.deepwiki.com/mcp", None),
-        ("Context7", "https://mcp.context7.com/mcp", None),
-        ("Chainflip", "https://chainflip-broker.io/mcp", None),
-    ]
-    run(TARGETS, os.environ.get("CHECKMCP_OUTCOME_OUT", "/tmp/outcomes.json"))
+    run(_load_targets(), os.environ.get("CHECKMCP_OUTCOME_OUT", "/tmp/outcomes.json"))

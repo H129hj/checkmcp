@@ -2,9 +2,12 @@
 Transport: streamable-HTTP (POST <url>). stdlib uniquement (urllib)."""
 import json, time, re, urllib.request, urllib.error
 
+# urllib envoie par défaut "Python-urllib/x" → bloqué (403) par les edges Cloudflare/WAF. UA explicite.
+UA = "CheckMCP/0.1 (+https://checkmcp.com)"
+
 
 def _post(url, body, sid=None, token=None, timeout=25):
-    h = {"Content-Type": "application/json", "Accept": "application/json, text/event-stream"}
+    h = {"Content-Type": "application/json", "Accept": "application/json, text/event-stream", "User-Agent": UA}
     if token:
         h["Authorization"] = "Bearer " + token
     if sid:
@@ -51,7 +54,7 @@ def _list(url, sid, token, method, key):
 
 def _get(url, timeout=4):
     try:
-        r = urllib.request.urlopen(urllib.request.Request(url, headers={"Accept": "application/json"}), timeout=timeout)
+        r = urllib.request.urlopen(urllib.request.Request(url, headers={"Accept": "application/json", "User-Agent": UA}), timeout=timeout)
         return r.status, r.read().decode()
     except urllib.error.HTTPError as e:
         return e.code, ""

@@ -1,0 +1,62 @@
+[
+  {
+    "name": "DeepWiki",
+    "url": "https://mcp.deepwiki.com/mcp"
+  },
+  {
+    "name": "Chainflip",
+    "url": "https://chainflip-broker.io/mcp"
+  },
+  {
+    "name": "MicrosoftLearn",
+    "url": "https://learn.microsoft.com/api/mcp"
+  },
+  {
+    "name": "HuggingFace",
+    "url": "https://huggingface.co/mcp"
+  },
+  {
+    "name": "GitMCP-servers",
+    "url": "https://gitmcp.io/modelcontextprotocol/servers"
+  },
+  {
+    "name": "GitMCP-react",
+    "url": "https://gitmcp.io/facebook/react"
+  },
+  {
+    "name": "GitMCP-langchain",
+    "url": "https://gitmcp.io/langchain-ai/langchain"
+  },
+  {
+    "name": "GitMCP-fastapi",
+    "url": "https://gitmcp.io/tiangolo/fastapi"
+  },
+  {
+    "name": "GitMCP-next",
+    "url": "https://gitmcp.io/vercel/next.js"
+  },
+  {
+    "name": "Roundtable",
+    "url": "https://mcp.roundtable.now/mcp"
+  },
+  {
+    "name": "GitMCP-vue",
+    "url": "https://gitmcp.io/vuejs/core"
+  },
+  {
+    "name": "GitMCP-django",
+    "url": "https://gitmcp.io/django/django"
+  },
+  {
+    "name": "GitMCP-rust",
+    "url": "https://gitmcp.io/rust-lang/rust"
+  },
+  {
+    "name": "GitMCP-tailwind",
+    "url": "https://gitmcp.io/tailwindlabs/tailwindcss"
+  },
+  {
+    "name": "GitMCP-svelte",
+    "url": "https://gitmcp.io/sveltejs/svelte"
+  }
+]
