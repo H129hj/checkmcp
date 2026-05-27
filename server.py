@@ -142,7 +142,7 @@ class H(BaseHTTPRequestHandler):
             url = qs.get("url", [None])[0]
             if not url:
                 return self._send(400, json.dumps({"error": "param ?url= requis"}), "application/json")
-            m = monitor_for(url, pin=qs.get("pin", ["0"])[0] in ("1", "true"))
+            m = monitor_for(url, pin=qs.get("pin", ["0"])[0] in ("1", "true"), user_id=qs.get("user_id", [None])[0])
             return self._send(200 if not m.get("error") else 502, json.dumps(m, ensure_ascii=False), "application/json")
 
         if u.path == "/api/repo":
