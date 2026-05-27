@@ -1,0 +1,127 @@
+[
+  {
+    "name": "Symphony",
+    "url": "http://localhost:8787/mcp",
+    "n_tools": 146,
+    "candidate_set": 60,
+    "trials": 18,
+    "selection_accuracy": 0.8888888888888888,
+    "score": 36,
+    "grade": "F",
+    "pillars": {
+      "tool_design": 12,
+      "desc_schema": 66,
+      "token": 47,
+      "security": 15,
+      "compliance": 45,
+      "reliability": 100,
+      "use_case": 50
+    },
+    "tokens": 19637
+  },
+  {
+    "name": "CourseLighting",
+    "url": "http://localhost:8790/mcp",
+    "n_tools": 26,
+    "candidate_set": 26,
+    "trials": 18,
+    "selection_accuracy": 0.8333333333333334,
+    "score": 68,
+    "grade": "D",
+    "pillars": {
+      "tool_design": 59,
+      "desc_schema": 66,
+      "token": 71,
+      "security": 88,
+      "compliance": 45,
+      "reliability": 100,
+      "use_case": 70
+    },
+    "tokens": 3256
+  },
+  {
+    "name": "War-MCP",
+    "url": "http://localhost:8888/mcp",
+    "n_tools": 521,
+    "candidate_set": 60,
+    "trials": 18,
+    "selection_accuracy": 0.8888888888888888,
+    "score": 42,
+    "grade": "F",
+    "pillars": {
+      "tool_design": 0,
+      "desc_schema": 66,
+      "token": 31,
+      "security": 63,
+      "compliance": 45,
+      "reliability": 50,
+      "use_case": 50
+    },
+    "tokens": 108140
+  },
+  {
+    "name": "Drop-Pilot",
+    "url": "http://localhost:8765/mcp",
+    "n_tools": 124,
+    "candidate_set": 60,
+    "trials": 18,
+    "selection_accuracy": 0.9444444444444444,
+    "score": 45,
+    "grade": "F",
+    "pillars": {
+      "tool_design": 12,
+      "desc_schema": 66,
+      "token": 31,
+      "security": 63,
+      "compliance": 45,
+      "reliability": 100,
+      "use_case": 50
+    },
+    "tokens": 20370
+  },
+  {
+    "name": "DeepWiki",
+    "url": "https://mcp.deepwiki.com/mcp",
+    "n_tools": 3,
+    "candidate_set": 3,
+    "trials": 3,
+    "selection_accuracy": 1.0,
+    "score": 81,
+    "grade": "B",
+    "pillars": {
+      "tool_design": 100,
+      "desc_schema": 66,
+      "token": 95,
+      "security": 100,
+      "compliance": 45,
+      "reliability": 20,
+      "use_case": 50
+    },
+    "tokens": 407
+  },
+  {
+    "name": "Context7",
+    "url": "https://mcp.context7.com/mcp",
+    "error": "trop peu d'outils décrits (2)"
+  },
+  {
+    "name": "Chainflip",
+    "url": "https://chainflip-broker.io/mcp",
+    "n_tools": 6,
+    "candidate_set": 6,
+    "trials": 6,
+    "selection_accuracy": 0.6666666666666666,
+    "score": 69,
+    "grade": "D",
+    "pillars": {
+      "tool_design": 100,
+      "desc_schema": 80,
+      "token": 64,
+      "security": 75,
+      "compliance": 86,
+      "reliability": 100,
+      "use_case": 60
+    },
+    "tokens": 1584
+  }
+]
