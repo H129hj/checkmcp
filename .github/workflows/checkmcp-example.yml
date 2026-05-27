@@ -1,0 +1,16 @@
+# Exemple : auditer un serveur MCP à chaque push/PR.
+# Échoue si le score < min-score OU si une définition d'outil a muté/disparu (rug-pull) vs la baseline commitée.
+name: CheckMCP audit
+on: [push, pull_request, workflow_dispatch]
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: H129hj/checkmcp@main
+        with:
+          url: https://mcp.deepwiki.com/mcp
+          min-score: "70"
+          baseline: .checkmcp-baseline.json   # commit ce fichier pour figer le contrat d'outils
+          # repo: owner/name                   # (optionnel) signal maintenance/licence
+          # token: ${{ secrets.MCP_TOKEN }}    # (optionnel) si auth requise

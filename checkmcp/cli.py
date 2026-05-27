@@ -1,7 +1,7 @@
 """CLI CheckMCP — `checkmcp <url>` : audit + MCP Score + rapport causal Lighthouse-style."""
 import argparse, json, sys
 from . import __version__
-import re
+import os, re
 from .probe import probe
 from .score import score, W
 from .optimize import optimize
@@ -73,6 +73,9 @@ def main(argv=None):
     ap.add_argument("--badge", action="store_true", help="Émet le badge SVG + les snippets d'embed")
     ap.add_argument("--html", action="store_true", help="Émet la page SEO/GEO (JSON-LD) du serveur")
     ap.add_argument("--repo", help="owner/name ou URL GitHub → maintenance/liveness/licence (largeur)", default=None)
+    ap.add_argument("--min-score", type=int, default=None, help="CI: échoue (exit 1) si le MCP Score < N")
+    ap.add_argument("--baseline", default=None, help="CI: fichier d'empreinte ; régression (mutation/retrait d'outil) → échoue. Créé s'il n'existe pas.")
+    ap.add_argument("--gh-summary", action="store_true", help="CI: écrit un résumé Markdown dans $GITHUB_STEP_SUMMARY")
     ap.add_argument("--version", action="version", version=f"checkmcp {__version__}")
     a = ap.parse_args(argv)
 
@@ -92,6 +95,39 @@ def main(argv=None):
     res["url"] = a.url
     res["server"] = p.get("server", {})
     slug = _slug(a.url)
+
+    # ---- CI: régression vs baseline (rug-pull/retrait d'outil) ----
+    regression = None
+    if a.baseline:
+        from .monitor import fingerprint, diff, summarize
+        fp = fingerprint(p)
+        if os.path.exists(a.baseline):
+            base = json.load(open(a.baseline))
+            regression = summarize(diff(base, fp))
+            res["regression"] = regression
+        else:
+            json.dump(fp, open(a.baseline, "w"))
+            print(f"[checkmcp] baseline épinglée → {a.baseline}", file=sys.stderr)
+
+    # ---- CI: décision d'échec ----
+    fail = False
+    if a.min_score is not None and res["score"] < a.min_score:
+        fail = True
+        print(f"[checkmcp] FAIL: score {res['score']} < min {a.min_score}", file=sys.stderr)
+    if regression and regression["drift"] and any(e["severity"] in ("CRITICAL", "BREAKING") for e in regression["events"]):
+        fail = True
+        print(f"[checkmcp] FAIL: régression {regression['verdict']}", file=sys.stderr)
+
+    # ---- CI: GitHub Step Summary ----
+    if a.gh_summary and os.environ.get("GITHUB_STEP_SUMMARY"):
+        with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as fh:
+            fh.write(f"## CheckMCP — `{a.url}`\n\n**MCP Score: {res['score']}/100 ({res['grade']})**"
+                     + (f" · ⚠️ {res['floor']}" if res.get("floor") else "") + "\n\n")
+            fh.write("| Pilier | Score |\n|---|---|\n" + "".join(f"| {k} | {v} |\n" for k, v in res["pillars"].items()))
+            if res["findings"]:
+                fh.write("\n**Top opportunités:**\n" + "".join(f"- [{x['severity']}] {x['measured']}\n" for x in res["findings"][:5]))
+            if regression and regression["drift"]:
+                fh.write(f"\n**⚠️ Régression: {regression['verdict']}**\n" + "".join(f"- [{e['severity']}] {e['type']} `{e['tool']}`\n" for e in regression["events"][:6]))
     if a.badge:
         print(badge_svg(res["score"], res["grade"]))
         for k, v in embed_snippets(slug, res["score"], res["grade"]).items():
@@ -102,6 +138,9 @@ def main(argv=None):
         print(json.dumps(res, indent=2, ensure_ascii=False))
     else:
         print(human(a.url, res))
+    # exit code: en mode CI (min-score/baseline), gouverné par fail ; sinon défaut grade F
+    if a.min_score is not None or a.baseline:
+        return 1 if fail else 0
     return 0 if res["grade"] not in ("F",) else 1
 
 

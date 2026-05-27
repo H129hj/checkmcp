@@ -1,0 +1,47 @@
+name: "CheckMCP"
+description: "Audite & score un serveur MCP en CI — échoue sur score bas ou régression des définitions d'outils (rug-pull)."
+author: "CheckMCP"
+branding:
+  icon: "shield"
+  color: "green"
+inputs:
+  url:
+    description: "URL de l'endpoint MCP (streamable-http)"
+    required: true
+  min-score:
+    description: "Échoue si le MCP Score < cette valeur"
+    required: false
+    default: "70"
+  baseline:
+    description: "Chemin d'un fichier baseline commité → détection de régression (mutation/retrait d'outil)"
+    required: false
+    default: ""
+  repo:
+    description: "owner/name ou URL GitHub → signal maintenance/licence"
+    required: false
+    default: ""
+  token:
+    description: "Bearer token si le serveur exige l'auth"
+    required: false
+    default: ""
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+    - shell: bash
+      run: pip install --quiet "${{ github.action_path }}"
+    - shell: bash
+      env:
+        CKMCP_URL: ${{ inputs.url }}
+        CKMCP_MIN: ${{ inputs.min-score }}
+        CKMCP_BASELINE: ${{ inputs.baseline }}
+        CKMCP_REPO: ${{ inputs.repo }}
+        CKMCP_TOKEN: ${{ inputs.token }}
+      run: |
+        args=("$CKMCP_URL" --gh-summary --min-score "$CKMCP_MIN")
+        [ -n "$CKMCP_BASELINE" ] && args+=(--baseline "$CKMCP_BASELINE")
+        [ -n "$CKMCP_REPO" ] && args+=(--repo "$CKMCP_REPO")
+        [ -n "$CKMCP_TOKEN" ] && args+=(--token "$CKMCP_TOKEN")
+        checkmcp "${args[@]}"
