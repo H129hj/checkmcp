@@ -82,4 +82,5 @@ def audit(probe):
     order = {"CRITICAL": 0, "HIGH": 1, "MEDIUM": 2}
     findings.sort(key=lambda f: order.get(f["severity"], 9))
     return {"score": score, "findings": findings, "hard_floor": hard_floor,
-            "capabilities": {k: len(v) for k, v in buckets.items()}, "trifecta": trifecta}
+            "capabilities": {k: len(v) for k, v in buckets.items()},
+            "buckets": buckets, "trifecta": trifecta}

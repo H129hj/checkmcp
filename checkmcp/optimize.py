@@ -48,6 +48,25 @@ def optimize(probe):
     suggestions = []
     removable = 0  # nb d'outils qu'on pourrait retirer par consolidation
 
+    # 0) anti-trifecta : si les 3 classes toxiques coexistent, proposer de scinder le serveur
+    from . import security as _sec
+    sec = _sec.audit(probe)
+    if sec["trifecta"]:
+        b = sec["buckets"]
+        priv = sorted(set(b["sensitive_data"]) | set(b["exfil"]) | set(b["destructive"]))
+        untr = sorted(set(b["untrusted_content"]))
+        ex = lambda lst: ", ".join(lst[:4]) + (f" +{len(lst)-4}" if len(lst) > 4 else "")
+        suggestions.append({
+            "type": "split-trifecta", "severity": "CRITICAL", "resource": None,
+            "tools": [f"non-fiable: {ex(untr)}", f"privilégié: {ex(priv)}"],
+            "proposed": "scinder en 2 serveurs : un MCP « lecture/contenu non-fiable » (read-only, openWorldHint) "
+                        "isolé du MCP « privilégié » (données sensibles + exfil/destruction)",
+            "est_tokens_saved": 0,
+            "why": "lethal trifecta : ingestion de contenu non-fiable + accès données sensibles + exfil/destruction sur le MÊME serveur → "
+                   "une prompt-injection dans le contenu ingéré peut lire un secret et l'exfiltrer. Séparer les capacités casse la chaîne ; "
+                   "à défaut, mettre les outils sensibles derrière confirmation + destructiveHint et restreindre les sorties exfil.",
+        })
+
     for nn, group in by_noun.items():
         if len(group) < 2:
             continue
@@ -93,7 +112,8 @@ def optimize(probe):
             "why": f"{len(collisions)} paire(s) de noms quasi-identiques → l'agent confond les outils",
         })
 
-    suggestions.sort(key=lambda s: s.get("est_tokens_saved", 0), reverse=True)
+    _sev = {"CRITICAL": 3, "HIGH": 2, "MEDIUM": 1, "LOW": 0}
+    suggestions.sort(key=lambda s: (_sev.get(s.get("severity"), 0), s.get("est_tokens_saved", 0)), reverse=True)
     projected = max(1, n - removable)
     total_saved = sum(s.get("est_tokens_saved", 0) for s in suggestions)
     return {
