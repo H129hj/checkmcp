@@ -14,8 +14,37 @@ from checkmcp.optimize import optimize
 from checkmcp.badge import badge_svg
 from checkmcp.page import render as render_page
 from checkmcp.repo import fetch as repo_fetch, findings as repo_findings
+from checkmcp.monitor import fingerprint, diff, summarize
 
 TTL = 6 * 3600
+BASELINES = os.environ.get("CHECKMCP_BASELINES", os.path.join(os.path.dirname(os.path.abspath(__file__)), "baselines.json"))
+_baselines = {}
+
+
+def _load_baselines():
+    global _baselines
+    try:
+        _baselines = json.load(open(BASELINES))
+    except Exception:
+        _baselines = {}
+
+
+def monitor_for(url, pin=False):
+    p = probe(url)
+    if p.get("error"):
+        return {"url": url, "error": p["error"]}
+    fp = fingerprint(p)
+    base = _baselines.get(url)
+    if base is None or pin:
+        _baselines[url] = fp
+        try:
+            json.dump(_baselines, open(BASELINES, "w"))
+        except Exception:
+            pass
+        return {"url": url, "pinned": True, "set_hash": fp["set_hash"], "count": fp["count"], "drift": False}
+    s = summarize(diff(base, fp))
+    s.update({"url": url, "baseline_hash": base["set_hash"], "current_hash": fp["set_hash"], "count": fp["count"]})
+    return s
 GH_TOKEN = os.environ.get("GITHUB_TOKEN")
 _repo_cache = {}
 
@@ -98,6 +127,13 @@ class H(BaseHTTPRequestHandler):
         if u.path == "/health":
             return self._send(200, json.dumps({"status": "ok", "version": __version__, "cached": len(_cache), "catalog": len(_catalog)}), "application/json")
 
+        if u.path == "/api/monitor":
+            url = qs.get("url", [None])[0]
+            if not url:
+                return self._send(400, json.dumps({"error": "param ?url= requis"}), "application/json")
+            m = monitor_for(url, pin=qs.get("pin", ["0"])[0] in ("1", "true"))
+            return self._send(200 if not m.get("error") else 502, json.dumps(m, ensure_ascii=False), "application/json")
+
         if u.path == "/api/repo":
             repo = qs.get("repo", [None])[0]
             if not repo:
@@ -138,5 +174,6 @@ class H(BaseHTTPRequestHandler):
 
 if __name__ == "__main__":
     _load()
-    print(f"CheckMCP API v{__version__} on :{PORT} (catalog={len(_catalog)})", flush=True)
+    _load_baselines()
+    print(f"CheckMCP API v{__version__} on :{PORT} (catalog={len(_catalog)}, baselines={len(_baselines)})", flush=True)
     ThreadingHTTPServer(("0.0.0.0", PORT), H).serve_forever()
