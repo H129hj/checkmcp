@@ -100,38 +100,17 @@ def score(p):
             "les defs d'outils sont payées à CHAQUE requête",
             "épuise la fenêtre + coût continu", W["token"] * (100 - b31) / 100)
 
-    # ---------- P4 Security ----------
-    p4 = 100
-    destructive = unconfirmed = secrets = inject = 0
-    for t in tools:
-        nm = t.get("name", ""); desc = (t.get("description") or "")
-        props = (t.get("inputSchema", {}) or {}).get("properties", {}) or {}
-        ann = t.get("annotations") or {}
-        if DESTRUCTIVE.search(nm):
-            destructive += 1
-            if not (any(CONFIRM.search(x) for x in props) or ann.get("destructiveHint")):
-                unconfirmed += 1
-        if INJECT.search(desc):
-            inject += 1
-        for pn, sp in props.items():
-            if SECRET.search(pn + " " + str((sp or {}).get("description", ""))) and (sp or {}).get("default") not in (None, ""):
-                secrets += 1
-    p4 -= min(60, 15 * unconfirmed)
-    p4 -= 40 * secrets
-    p4 -= min(60, 20 * inject)
-    if annot_cov == 0 and destructive:
-        p4 -= 15
-    p4 = max(0, min(100, p4))
-    if unconfirmed:
-        add("security", "HIGH", f"{unconfirmed}/{destructive} outils destructifs sans confirm/hint",
-            "l'agent peut déclencher une action irréversible sans garde-fou",
-            "perte/corruption de données possible", 15 * unconfirmed * W["security"] / 100)
-    if secrets:
-        add("security", "CRITICAL", f"{secrets} secret(s) en clair dans un schéma",
-            "secret exposé en input/exemple", "fuite de credential", 40 * W["security"] / 100)
-    if inject:
-        add("security", "CRITICAL", f"{inject} surface(s) d'injection dans une description",
-            "instruction injectée lisible par l'agent", "détournement de l'agent", 20 * inject * W["security"] / 100)
+    # ---------- P4 Security (profondeur OWASP MCP Top 10, via security.py) ----------
+    from . import security as _sec
+    sec = _sec.audit(p)
+    p4 = sec["score"]
+    for f in sec["findings"]:
+        d = (25 if f["severity"] == "CRITICAL" else 12) * W["security"] / 100
+        add("security", f["severity"], f"[{f['owasp']}] {f['issue']}", "faille de sécurité MCP", f"outil: {f['tool']}", d)
+    destructive = sec["capabilities"].get("destructive", 0)
+    unconfirmed = sum(1 for f in sec["findings"] if f["owasp"] == "MCP02")
+    secrets = sum(1 for f in sec["findings"] if f["owasp"] == "MCP01")
+    inject = sum(1 for f in sec["findings"] if f["owasp"] == "MCP03")
 
     # ---------- P5 Compliance ----------
     gap = (len(PROTO) - 1 - PROTO.index(proto)) if proto in PROTO else 4
@@ -182,7 +161,7 @@ def score(p):
     measured = ["security", "tool_design", "desc_schema", "token", "compliance", "use_case"]
     raw = sum(W[k] * P[k] for k in measured) / sum(W[k] for k in measured)
     floor = None
-    if secrets or inject:
+    if sec["hard_floor"]:
         raw = min(raw, 69); floor = "SECURITY_RISK"
     sc = round(raw)
     F.sort(key=lambda x: x["delta"], reverse=True)
@@ -193,5 +172,7 @@ def score(p):
         "facts": {"tools": n, "resources": len(p.get("resources", [])), "prompts": len(p.get("prompts", [])),
                    "proto": proto, "tools_list_tokens": toks, "annotations_pct": round(100 * annot_cov),
                    "destructive": destructive, "unconfirmed_destructive": unconfirmed,
+                   "owasp": [{"id": f["owasp"], "sev": f["severity"], "tool": f["tool"]} for f in sec["findings"]],
+                   "lethal_trifecta": sec["trifecta"], "sec_capabilities": sec["capabilities"],
                    "latency_ms": p.get("latency", {})},
     }
