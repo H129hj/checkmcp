@@ -15,9 +15,11 @@ export async function addMonitor(formData: FormData) {
     { user_id: user.id, url, min_score, is_active: true },
     { onConflict: "user_id,url" }
   );
-  // Épingle la baseline initiale via l'API CheckMCP (best-effort).
+  // Épingle la baseline initiale via l'API CheckMCP (best-effort), authentifié par le JWT Supabase.
   try {
-    await fetch(`${process.env.CHECKMCP_API}/api/monitor?url=${encodeURIComponent(url)}&user_id=${user.id}&pin=1`, {
+    const { data: { session } } = await supabase.auth.getSession();
+    await fetch(`${process.env.CHECKMCP_API}/api/monitor?url=${encodeURIComponent(url)}&pin=1`, {
+      headers: session ? { Authorization: `Bearer ${session.access_token}` } : {},
       signal: AbortSignal.timeout(20000),
     });
   } catch { /* l'utilisateur pourra re-pin plus tard */ }

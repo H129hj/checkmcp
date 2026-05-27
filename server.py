@@ -2,9 +2,25 @@
 """API CheckMCP — service HTTP stdlib (zéro dépendance).
 Routes: /health · /api/score?url= · /badge/<slug>.svg(?url=) · /mcp/<slug>(?url=) · /audit?url=
 Cache TTL + catalogue slug->url persistant."""
-import json, time, re, os, sys
+import json, time, re, os, sys, urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse, parse_qs
+
+SB_ANON = os.environ.get("SUPABASE_ANON_KEY")
+
+
+def uid_from_jwt(headers):
+    """Vérifie le JWT Supabase (Authorization: Bearer) → user id, ou None. Source d'autorité (pas le query param)."""
+    auth = headers.get("Authorization", "")
+    if not (auth.startswith("Bearer ") and os.environ.get("SUPABASE_URL") and SB_ANON):
+        return None
+    try:
+        r = urllib.request.urlopen(urllib.request.Request(
+            os.environ["SUPABASE_URL"].rstrip("/") + "/auth/v1/user",
+            headers={"apikey": SB_ANON, "Authorization": auth}), timeout=8)
+        return (json.loads(r.read().decode()) or {}).get("id")
+    except Exception:
+        return None
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from checkmcp import __version__
@@ -142,7 +158,8 @@ class H(BaseHTTPRequestHandler):
             url = qs.get("url", [None])[0]
             if not url:
                 return self._send(400, json.dumps({"error": "param ?url= requis"}), "application/json")
-            m = monitor_for(url, pin=qs.get("pin", ["0"])[0] in ("1", "true"), user_id=qs.get("user_id", [None])[0])
+            uid = uid_from_jwt(self.headers) or qs.get("user_id", [None])[0]  # JWT prioritaire ; query param = fallback transitoire
+            m = monitor_for(url, pin=qs.get("pin", ["0"])[0] in ("1", "true"), user_id=uid)
             return self._send(200 if not m.get("error") else 502, json.dumps(m, ensure_ascii=False), "application/json")
 
         if u.path == "/api/repo":
