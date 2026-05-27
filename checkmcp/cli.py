@@ -61,6 +61,16 @@ def human(url, res):
             out.append(f"  [{s['severity']:<6}] {head}")
             out.append(f"     → {s['proposed']}")
             out.append(f"       {s['why']}")
+    rt = res.get("runtime")
+    if rt:
+        out.append("")
+        if rt.get("backend"):
+            rf = rt.get("findings", [])
+            out.append(f"  RUNTIME ({rt['backend']}) — {len(rf)} finding(s)" + (f" · {rt['error']}" if rt.get("error") else ""))
+            for fnd in rf[:6]:
+                out.append(f"  [{fnd['severity']:<6}] {fnd['owasp']} — {fnd['issue']} ({fnd['tool']})")
+        else:
+            out.append(f"  RUNTIME — {rt.get('note','')}")
     out.append("")
     return "\n".join(out)
 
@@ -76,6 +86,7 @@ def main(argv=None):
     ap.add_argument("--min-score", type=int, default=None, help="CI: échoue (exit 1) si le MCP Score < N")
     ap.add_argument("--baseline", default=None, help="CI: fichier d'empreinte ; régression (mutation/retrait d'outil) → échoue. Créé s'il n'existe pas.")
     ap.add_argument("--gh-summary", action="store_true", help="CI: écrit un résumé Markdown dans $GITHUB_STEP_SUMMARY")
+    ap.add_argument("--deep", action="store_true", help="Profondeur runtime via scanner externe (mcp-scan/snyk/CHECKMCP_SCANNER_CMD) si présent")
     ap.add_argument("--version", action="version", version=f"checkmcp {__version__}")
     a = ap.parse_args(argv)
 
@@ -95,6 +106,18 @@ def main(argv=None):
     res["url"] = a.url
     res["server"] = p.get("server", {})
     slug = _slug(a.url)
+
+    # ---- Profondeur runtime (#8) : fusion d'un scanner externe si présent ----
+    if a.deep:
+        from . import scanners
+        rt = scanners.scan(a.url)
+        res["runtime"] = rt
+        for fnd in rt.get("findings", []):
+            res["findings"].append({"pillar": "security", "severity": fnd["severity"],
+                                    "measured": f"[{fnd['owasp']}·runtime/{fnd['source']}] {fnd['issue']}",
+                                    "mechanism": "détecté à l'exécution par un scanner externe",
+                                    "effect": f"outil: {fnd['tool']}", "delta": 0})
+        res["findings"].sort(key=lambda x: x["delta"], reverse=True)
 
     # ---- CI: régression vs baseline (rug-pull/retrait d'outil) ----
     regression = None
