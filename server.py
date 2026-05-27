@@ -15,6 +15,7 @@ from checkmcp.badge import badge_svg
 from checkmcp.page import render as render_page
 from checkmcp.repo import fetch as repo_fetch, findings as repo_findings
 from checkmcp.monitor import fingerprint, diff, summarize
+from checkmcp import store
 
 TTL = 6 * 3600
 BASELINES = os.environ.get("CHECKMCP_BASELINES", os.path.join(os.path.dirname(os.path.abspath(__file__)), "baselines.json"))
@@ -29,11 +30,21 @@ def _load_baselines():
         _baselines = {}
 
 
-def monitor_for(url, pin=False):
+def monitor_for(url, pin=False, user_id=None):
     p = probe(url)
     if p.get("error"):
         return {"url": url, "error": p["error"]}
     fp = fingerprint(p)
+    if store.enabled():
+        base = store.get_baseline(url, user_id)
+        if base is None or pin:
+            store.upsert_baseline(url, fp, user_id)
+            return {"url": url, "pinned": True, "set_hash": fp["set_hash"], "count": fp["count"], "drift": False, "backend": "supabase"}
+        res = summarize(diff(base.get("fingerprint", {}), fp))
+        res.update({"url": url, "baseline_hash": base.get("set_hash"), "current_hash": fp["set_hash"], "count": fp["count"], "backend": "supabase"})
+        store.insert_run(url, drift=res["drift"], verdict=res.get("verdict"), events=res.get("events"), user_id=user_id)
+        return res
+    # fallback JSON local
     base = _baselines.get(url)
     if base is None or pin:
         _baselines[url] = fp
@@ -41,9 +52,9 @@ def monitor_for(url, pin=False):
             json.dump(_baselines, open(BASELINES, "w"))
         except Exception:
             pass
-        return {"url": url, "pinned": True, "set_hash": fp["set_hash"], "count": fp["count"], "drift": False}
+        return {"url": url, "pinned": True, "set_hash": fp["set_hash"], "count": fp["count"], "drift": False, "backend": "json"}
     s = summarize(diff(base, fp))
-    s.update({"url": url, "baseline_hash": base["set_hash"], "current_hash": fp["set_hash"], "count": fp["count"]})
+    s.update({"url": url, "baseline_hash": base["set_hash"], "current_hash": fp["set_hash"], "count": fp["count"], "backend": "json"})
     return s
 GH_TOKEN = os.environ.get("GITHUB_TOKEN")
 _repo_cache = {}
