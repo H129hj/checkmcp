@@ -7,7 +7,13 @@ UNTRUSTED = re.compile(r"(fetch|scrape|browse|crawl|http|_url|web.?search|read.?
 SENSITIVE = re.compile(r"(secret|credential|token|api.?key|password|vault|email|inbox|read.?file|cat_|database|db.?query|\bsql\b|financial|payment|invoice|wallet|private.?key|env_)", re.I)
 EXFIL = re.compile(r"(send|post_|publish|upload|email|notify|webhook|export|sync|push|transfer|message|tweet|sms)", re.I)
 DESTRUCT = re.compile(r"(delete|remove|drop|destroy|purge|reset|truncate|revoke|kill|terminate|overwrite|wipe)", re.I)
-EXEC = re.compile(r"(exec|shell|run.?cmd|run_|command|\beval\b|bash|terminal|system|spawn|subprocess|sql_exec|db_execute)", re.I)
+# Exécution réelle de commande/shell/code/SQL (≠ "run_<métier>" type run_model/run_benchmark/run_pipeline).
+EXEC = re.compile(
+    r"(shell|bash|terminal|subprocess|\bspawn\b"
+    r"|(^|[_-])exec([_-]|$)|(^|[_-])execute([_-]|$)|(^|[_-])eval([_-]|$)"
+    r"|(^|[_-])run[_-](cmd|command|shell|script|code|sql|query|bash|exec)"
+    r"|(^|[_-])(cmd|command)([_-]|$)"
+    r"|(sql|db)[_-](exec|execute|query))", re.I)
 # Poisoning = instruction cachée qui détourne l'agent (≠ consigne de séquençage légitime "you must call X first").
 INJECT = re.compile(
     r"(ignore (the )?(previous|prior|above)|disregard (the )?(previous|prior)"
