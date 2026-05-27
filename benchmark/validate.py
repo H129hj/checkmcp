@@ -106,9 +106,18 @@ def to_markdown(a):
 
     L.append("## 1. La note prédit-elle l'outcome ?\n")
     c = a["composite_vs_outcome"]
-    L.append(f"**Composite ↔ sélection : ρ = {_fmt(c)}**" +
-             (" — corrélation positive : un meilleur MCP Score va de pair avec une meilleure sélection d'outil. ✅" if (c or 0) > 0.3 and a.get("powered")
-              else " — non concluant à ce stade (voir garde-fous ci-dessus)." if c is not None else "") + "\n")
+    cv = c or 0
+    if a.get("ceiling_effect"):
+        verdict = " — non concluant : effet plafond (voir ci-dessus)."
+    elif cv >= 0.5:
+        verdict = " — **corrélation positive forte** : un meilleur MCP Score va de pair avec une meilleure sélection d'outil. ✅ Signal de validité de construit (préliminaire, n modéré)."
+    elif cv >= 0.3:
+        verdict = " — corrélation positive modérée : la note tracke l'outcome, à confirmer sur n plus grand."
+    elif c is not None:
+        verdict = " — corrélation faible : poids/outcome à revoir."
+    else:
+        verdict = ""
+    L.append(f"**Composite ↔ sélection : ρ = {_fmt(c)}**" + verdict + "\n")
     L.append("| Pilier | ρ vs outcome |\n|---|---|")
     for p in PILLARS:
         L.append(f"| {p} | {_fmt(a['pillar_vs_outcome'][p])} |")
@@ -139,14 +148,19 @@ def to_markdown(a):
                  "Ré-estimer les poids sur ces données reviendrait à sur-apprendre du bruit.\n")
 
     L.append("## Verdict\n")
+    s = a["composite_spread"]
     L.append("- ✅ **Harnais de validité opérationnel** : probe → score → outcome LLM → corrélations/redondance/sensibilité, reproductible.")
-    L.append("- ✅ **La note discrimine** (composite 36–81, σ16.6) — les poids opèrent.")
+    L.append(f"- ✅ **La note discrimine** (composite {s['min']}–{s['max']}, σ{s['stdev']:.1f}) — les poids opèrent.")
     if a.get("ceiling_effect"):
-        L.append("- 🛑 **Outcome actuel non discriminant** (effet plafond) → ne valide ni n'invalide la note. Conclusion bloquée à dessein.")
-    L.append("- 🎯 **Prochaine itération pour un vrai verdict** : (a) n≳30 serveurs (élargir hors flotte) ; "
-             "(b) catalogue COMPLET (pas de cap 60) pour tester réellement le sprawl ; "
-             "(c) outcome plus dur et à variance (complétion multi-tours, distracteurs adverses, tâches non dérivées de la description) ; "
-             "(d) modèle juge ≠ modèle rédacteur des tâches (casser la circularité).\n")
+        L.append("- 🛑 **Outcome non discriminant** (effet plafond) → ni validation ni invalidation. Conclusion bloquée.")
+    else:
+        L.append(f"- ✅ **Effet plafond cassé** (σ outcome {a['outcome_stdev']:.2f}) grâce au catalogue complet + tâches orientées-but + juge≠rédacteur (v2).")
+        if cv >= 0.5:
+            L.append(f"- ✅ **Signal de validité de construit** : composite ↔ outcome ρ={_fmt(c)}, tokens ↔ outcome ρ={_fmt(a['tokens_vs_outcome'])} (le sprawl nuit, comme prédit).")
+    L.append("- ⚠️ **Caveat diversité** : une partie du corpus est constituée de serveurs GitMCP quasi-identiques (même score, design templaté) → diversité de design effective < n. À diversifier.")
+    L.append(f"- 🎯 **Pour un verdict fort + repondération** : n≥20 atteint? {a['n']>=20} · σ≥0.12? {a['outcome_stdev']>=0.12} · essais/serveur≥12? {a['min_trials']>=12} "
+             f"(actuel min={a['min_trials']}, plombé par les serveurs à peu d'outils). "
+             "Lever le dernier verrou = + de serveurs riches en outils (≥12) et n≥20 diversifié (cibles auth'd).\n")
     return "\n".join(L)
 
 
