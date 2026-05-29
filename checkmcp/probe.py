@@ -16,7 +16,33 @@ def _post(url, body, sid=None, token=None, timeout=25):
     t0 = time.time()
     try:
         r = urllib.request.urlopen(req, timeout=timeout)
-        return r.status, r.headers.get("mcp-session-id"), r.read().decode(), (time.time() - t0) * 1000
+        ctype = r.headers.get("Content-Type", "")
+        if "text/event-stream" in ctype:
+            # streamable-HTTP en SSE : la connexion reste ouverte (chunked). On lit ligne à ligne
+            # jusqu'à récupérer une réponse JSON-RPC dans un event "data:", puis on coupe.
+            chunks, deadline = [], time.time() + min(timeout, 15)
+            while time.time() < deadline:
+                try:
+                    line = r.readline()
+                except Exception:
+                    break
+                if not line:
+                    break
+                s = line.decode("utf-8", errors="replace")
+                chunks.append(s)
+                if s.startswith("data:"):
+                    try:
+                        json.loads(s[5:].strip()); break
+                    except Exception:
+                        pass
+            try:
+                r.close()
+            except Exception:
+                pass
+            raw = "".join(chunks)
+        else:
+            raw = r.read().decode()
+        return r.status, r.headers.get("mcp-session-id"), raw, (time.time() - t0) * 1000
     except urllib.error.HTTPError as e:
         return e.code, None, e.read().decode(), (time.time() - t0) * 1000
     except Exception:

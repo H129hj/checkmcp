@@ -164,11 +164,35 @@ def to_markdown(a):
     return "\n".join(L)
 
 
+def _detect_clones(rows):
+    """Groupe les rangs par profil de piliers identique — ≥3 sur le même profil = clones."""
+    from collections import defaultdict
+    g = defaultdict(list)
+    for r in rows:
+        if "pillars" not in r:
+            continue
+        key = tuple(sorted(r["pillars"].items()))
+        g[key].append(r["name"])
+    return [names for names in g.values() if len(names) >= 3]
+
+
 def main():
     path = sys.argv[1] if len(sys.argv) > 1 else os.environ.get("CHECKMCP_OUTCOME_OUT", "/tmp/outcomes.json")
     rows = json.load(open(path))
     a = analyze(rows)
     md = to_markdown(a)
+    # auto-sous-analyse diversifiée si on détecte des clones
+    clone_groups = _detect_clones(rows)
+    if clone_groups:
+        cloned = {n for grp in clone_groups for n in grp[1:]}  # garde 1 représentant par groupe
+        diverse = [r for r in rows if r["name"] not in cloned]
+        if len(diverse) >= 5 and len(diverse) < len(rows):
+            a2 = analyze(diverse)
+            md += "\n\n---\n\n# Sous-analyse : corpus diversifié (sans clones)\n\n"
+            md += f"Clones détectés ({len(clone_groups)} groupes de profils piliers identiques, ex : {', '.join(clone_groups[0][:3])}…). "
+            md += f"En les déduplicant à 1 représentant par groupe → **n_diverse = {len(diverse)}**. "
+            md += "C'est l'analyse la plus honnête pour la validité de construit (les clones ajoutent du bruit à score constant).\n\n"
+            md += to_markdown(a2)
     out_md = sys.argv[2] if len(sys.argv) > 2 else os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "VALIDITY.md")
     open(out_md, "w").write(md)
     print(md)
