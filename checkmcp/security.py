@@ -51,15 +51,15 @@ def audit(probe):
         # MCP03/06 — injection/poisoning dans desc + schémas + output
         if INJECT.search(blob):
             findings.append({"owasp": "MCP03", "severity": "CRITICAL", "tool": nm,
-                             "issue": "instruction injectée (poisoning) dans description/schéma/output"})
+                             "issue": "injected instruction (poisoning) in description/schema/output"})
         # MCP01 — secret en dur (valeur, pas juste nom de param)
         if SECRET_VAL.search(blob):
             findings.append({"owasp": "MCP01", "severity": "CRITICAL", "tool": nm,
-                             "issue": "secret/clé en dur dans le schéma ou un exemple"})
+                             "issue": "hardcoded secret/key in the schema or an example"})
         # MCP05 — command/shell injection : outil exec + param string libre
         if EXEC.search(nm) and any(FREE_STR(s) for s in props.values()):
             findings.append({"owasp": "MCP05", "severity": "HIGH", "tool": nm,
-                             "issue": "exécution + param string libre non contraint → injection commande/shell"})
+                             "issue": "execution + unconstrained free-string param -> command/shell injection"})
         # MCP02 — destructif sans confirm/hint
         if DESTRUCT.search(nm) and not (ann.get("destructiveHint") or any(re.search(r"confirm|dry.?run|force", p, re.I) for p in props)):
             findings.append({"owasp": "MCP02", "severity": "HIGH", "tool": nm,
@@ -70,10 +70,10 @@ def audit(probe):
     trifecta = has["untrusted_content"] and has["sensitive_data"] and (has["exfil"] or has["destructive"])
     if trifecta:
         findings.append({"owasp": "MCP06", "severity": "CRITICAL", "tool": "(serveur)",
-                         "issue": "lethal trifecta : ingestion contenu non-fiable + accès données sensibles + exfil/destruction → une injection peut exfiltrer"})
+                         "issue": "lethal trifecta: untrusted-content ingestion + sensitive-data access + exfil/destruction -> an injection can exfiltrate"})
     elif sum(has.values()) >= 3:
         findings.append({"owasp": "MCP06", "severity": "HIGH", "tool": "(serveur)",
-                         "issue": "surface toxique : 3 classes de capacités à risque combinées"})
+                         "issue": "toxic surface: 3 risky capability classes combined"})
 
     # score sécurité [0..100] dérivé des findings (CRITICAL -25, HIGH -12)
     pen = sum(25 if f["severity"] == "CRITICAL" else 12 for f in findings)

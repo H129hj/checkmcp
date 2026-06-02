@@ -5,6 +5,7 @@ import json, os, sys, urllib.request, urllib.parse
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from checkmcp.probe import probe
+from checkmcp.score import score
 from checkmcp.monitor import fingerprint, diff, summarize
 from checkmcp import store
 
@@ -34,7 +35,7 @@ def main():
         except Exception:
             print("no baselines"); return
         targets = [(u, None) for u in local]
-    print(f"checkmcp-monitor: backend={'supabase' if use_sb else 'json'}, {len(targets)} cibles")
+    print(f"checkmcp-monitor: backend={'postgres' if use_sb else 'json'}, {len(targets)} cibles")
     drifted = 0
     for url, user_id in targets:
         p = probe(url)
@@ -42,7 +43,7 @@ def main():
             continue  # injoignable ponctuel — on ne crie pas au loup
         fp = fingerprint(p)
         if use_sb:
-            b = store.get_baseline(url, user_id)
+            b = store.get_baseline(url)
             base = b.get("fingerprint") if b else None
         else:
             base = local.get(url)
@@ -50,7 +51,9 @@ def main():
             continue  # pas encore de baseline épinglée
         s = summarize(diff(base, fp))
         if use_sb:
-            store.insert_run(url, drift=s["drift"], verdict=s.get("verdict"), events=s.get("events"), user_id=user_id)
+            sc = score(p)
+            store.insert_run(url, score=sc.get("score"), grade=sc.get("grade"), drift=s["drift"],
+                             verdict=s.get("verdict"), pillars=sc.get("pillars"), events=s.get("events"))
         crit = [e for e in s["events"] if e["severity"] in ("CRITICAL", "BREAKING")]
         if crit:
             drifted += 1

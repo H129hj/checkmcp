@@ -33,18 +33,18 @@ def diff(base, cur):
     for n in ct:
         if n not in bt:
             ev.append({"type": "tool_added", "tool": n, "severity": "INFO",
-                       "note": "nouvel outil — surface élargie"})
+                       "note": "new tool - widened surface"})
         else:
             if ct[n]["schema"] != bt[n]["schema"]:
                 ev.append({"type": "schema_mutated", "tool": n, "severity": "CRITICAL",
-                           "note": "schéma d'un outil APPROUVÉ modifié → rug-pull / changement de contrat"})
+                           "note": "schema of an APPROVED tool changed -> rug-pull / contract change"})
             if ct[n]["desc"] != bt[n]["desc"]:
                 ev.append({"type": "description_mutated", "tool": n, "severity": "CRITICAL",
-                           "note": "description (= prompt lu par l'agent) modifiée → vecteur tool-poisoning"})
+                           "note": "description (= prompt read by the agent) changed -> tool-poisoning vector"})
     for n in bt:
         if n not in ct:
             ev.append({"type": "tool_removed", "tool": n, "severity": "BREAKING",
-                       "note": "outil retiré/renommé sans bump de version → casse les clients"})
+                       "note": "tool removed/renamed without version bump -> breaks clients"})
     order = {"CRITICAL": 0, "BREAKING": 1, "INFO": 2}
     ev.sort(key=lambda e: order.get(e["severity"], 9))
     return ev

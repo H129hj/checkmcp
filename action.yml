@@ -1,27 +1,27 @@
 name: "CheckMCP"
-description: "Audite & score un serveur MCP en CI — échoue sur score bas ou régression des définitions d'outils (rug-pull)."
+description: "Audit & score an MCP server in CI — fails on a low score or a regression of the tool definitions (rug-pull)."
 author: "CheckMCP"
 branding:
   icon: "shield"
   color: "green"
 inputs:
   url:
-    description: "URL de l'endpoint MCP (streamable-http)"
+    description: "MCP endpoint URL (streamable-http or SSE)"
     required: true
   min-score:
-    description: "Échoue si le MCP Score < cette valeur"
+    description: "Fail if the MCP Score is below this value"
     required: false
     default: "70"
   baseline:
-    description: "Chemin d'un fichier baseline commité → détection de régression (mutation/retrait d'outil)"
+    description: "Path to a committed baseline file -> regression detection (tool mutation/removal)"
     required: false
     default: ""
   repo:
-    description: "owner/name ou URL GitHub → signal maintenance/licence"
+    description: "owner/name or GitHub URL -> maintenance/license signal"
     required: false
     default: ""
   token:
-    description: "Bearer token si le serveur exige l'auth"
+    description: "Bearer token if the server requires auth"
     required: false
     default: ""
 runs:

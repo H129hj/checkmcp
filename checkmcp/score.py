@@ -61,13 +61,13 @@ def score(p):
                         if len({re.match(r'^([a-z]+)', x, re.I).group(1).lower() for x in lst if re.match(r'^([a-z]+)', x, re.I)}) >= 3)
     if n > 42:
         add("tool_design", "HIGH", f"{n} outils (≥p95)",
-            "trop d'outils sature l'espace de sélection de l'agent",
+            "too many tools saturate the agent's tool-selection space",
             "↑ taux d'appel au mauvais outil", W["tool_design"] * (100 - p1) / 100)
     if consolidation:
         p1 = max(0, p1 - min(15, 3 * consolidation))
         add("tool_design", "MEDIUM", f"{consolidation} clusters consolidables",
-            "list/get/search/... répétés sur un même objet",
-            "candidats à fusionner en outils composites", 3 * consolidation * W["tool_design"] / 100)
+            "list/get/search/... repeated on the same object",
+            "candidates to merge into composite tools", 3 * consolidation * W["tool_design"] / 100)
     p1 = max(0, min(100, p1))
 
     # ---------- P2 Desc/Schema ----------
@@ -86,9 +86,9 @@ def score(p):
     m24 = 100 if out_cov >= 0.75 else 70 if out_cov >= 0.4 else 40 if out_cov >= 0.1 else 20
     p2 = round(0.35 * m21 + 0.40 * m23 + 0.25 * m24)
     if isc < 0.8:
-        add("desc_schema", "HIGH", f"{round(100*isc)}% params typés+décrits",
-            "schéma = contrat que l'agent remplit",
-            "↑ appels malformés", W["desc_schema"] * (100 - m23) / 100 * 0.4)
+        add("desc_schema", "HIGH", f"{round(100*isc)}% typed+described params",
+            "schema = the contract the agent fills in",
+            "more malformed calls", W["desc_schema"] * (100 - m23) / 100 * 0.4)
 
     # ---------- P3 Token (percentile bands: p95=13k) ----------
     b31 = _band(toks, [(1500, 100), (3600, 85), (6500, 60), (13000, 35), (10**9, 12)])
@@ -97,8 +97,8 @@ def score(p):
     p3 = round(0.55 * b31 + 0.25 * b32 + 0.20 * b34)
     if toks > 13000:
         add("token", "HIGH", f"~{toks//1000}k tokens (≥p95)",
-            "les defs d'outils sont payées à CHAQUE requête",
-            "épuise la fenêtre + coût continu", W["token"] * (100 - b31) / 100)
+            "tool defs are paid on EVERY request",
+            "exhausts the window + ongoing cost", W["token"] * (100 - b31) / 100)
 
     # ---------- P4 Security (profondeur OWASP MCP Top 10, via security.py) ----------
     from . import security as _sec
@@ -106,7 +106,7 @@ def score(p):
     p4 = sec["score"]
     for f in sec["findings"]:
         d = (25 if f["severity"] == "CRITICAL" else 12) * W["security"] / 100
-        add("security", f["severity"], f"[{f['owasp']}] {f['issue']}", "faille de sécurité MCP", f"outil: {f['tool']}", d)
+        add("security", f["severity"], f"[{f['owasp']}] {f['issue']}", "MCP security flaw", f"tool: {f['tool']}", d)
     destructive = sec["capabilities"].get("destructive", 0)
     unconfirmed = sum(1 for f in sec["findings"] if f["owasp"] == "MCP02")
     secrets = sum(1 for f in sec["findings"] if f["owasp"] == "MCP01")
@@ -121,30 +121,30 @@ def score(p):
     m53 = 100 if annot_cov >= 0.9 else 70 if annot_cov >= 0.6 else 40 if annot_cov >= 0.3 else 15
     p5 = round(0.30 * m51 + 0.35 * m52 + 0.35 * m53)
     if gap > 1:
-        add("compliance", "MEDIUM", f"proto {proto} ({gap} rév. derrière {LATEST})",
-            "version protocole obsolète", "fonctionnalités récentes indispo, clients récents fragilisés", W["compliance"] * (100 - m51) / 100 * 0.3)
+        add("compliance", "MEDIUM", f"proto {proto} ({gap} rev. behind {LATEST})",
+            "outdated protocol version", "recent features unavailable, recent clients weakened", W["compliance"] * (100 - m51) / 100 * 0.3)
     if annot_cov == 0:
-        add("compliance", "MEDIUM", "0 annotation déclarée",
-            "destructiveHint/openWorldHint absents → défauts pire-cas",
-            "l'outil est traité comme destructif & open-world par les clients", W["compliance"] * (100 - m53) / 100 * 0.35)
+        add("compliance", "MEDIUM", "0 declared annotations",
+            "destructiveHint/openWorldHint missing -> worst-case defaults",
+            "the tool is treated as destructive & open-world by clients", W["compliance"] * (100 - m53) / 100 * 0.35)
     if jr < 1:
-        add("compliance", "MEDIUM", f"erreurs JSON-RPC conformes {sum(jc)}/{len(jc)}",
-            "erreurs non conformes à la spec JSON-RPC", "clients cassent de façon imprévisible", W["compliance"] * (100 - m52) / 100 * 0.35)
+        add("compliance", "MEDIUM", f"JSON-RPC-compliant errors {sum(jc)}/{len(jc)}",
+            "errors not compliant with the JSON-RPC spec", "clients break unpredictably", W["compliance"] * (100 - m52) / 100 * 0.35)
 
     # ---------- Largeur cheap : cohérence capabilities + découverte OAuth ----------
     cc = p.get("capabilities_coherence", {})
     if cc.get("declares_resources") and not cc.get("has_resources"):
-        add("compliance", "MEDIUM", "capability 'resources' déclarée mais resources/list vide",
-            "capabilities incohérentes vs comportement réel", "clients induits en erreur", W["compliance"] * 0.10)
+        add("compliance", "MEDIUM", "capability 'resources' declared but resources/list empty",
+            "capabilities inconsistent with real behavior", "clients misled", W["compliance"] * 0.10)
         p5 = max(0, p5 - 6)
     if cc.get("declares_prompts") and not cc.get("has_prompts"):
-        add("compliance", "MEDIUM", "capability 'prompts' déclarée mais prompts/list vide",
-            "capabilities incohérentes", "clients induits en erreur", W["compliance"] * 0.10)
+        add("compliance", "MEDIUM", "capability 'prompts' declared but prompts/list empty",
+            "inconsistent capabilities", "clients misled", W["compliance"] * 0.10)
         p5 = max(0, p5 - 6)
     wk = p.get("well_known", {})
     if not (wk.get("oauth_protected_resource") or wk.get("oauth_authorization_server")):
-        add("compliance", "LOW", "pas de découverte OAuth (.well-known absent)",
-            "RFC 9728/8414 non exposés", "auth non auto-découvrable par les clients", W["compliance"] * 0.05)
+        add("compliance", "LOW", "no OAuth discovery (.well-known missing)",
+            "RFC 9728/8414 not exposed", "auth not auto-discoverable by clients", W["compliance"] * 0.05)
 
     # ---------- P6 Reliability (T1 single-shot → NON crédité au composite) ----------
     lat = max(p.get("latency", {}).get("initialize_ms", 0), p.get("latency", {}).get("tools_list_ms", 0))
@@ -167,7 +167,7 @@ def score(p):
     F.sort(key=lambda x: x["delta"], reverse=True)
     return {
         "score": sc, "grade": _grade(sc), "floor": floor, "pillars": {k: round(v) for k, v in P.items()},
-        "reliability_confidence": "LOW (T1 single-shot, non crédité — requiert T3 ≥24h)",
+        "reliability_confidence": "LOW (T1 single-shot, not credited - requires T3 >=24h)",
         "findings": F, "tokmode": TOKMODE,
         "facts": {"tools": n, "resources": len(p.get("resources", [])), "prompts": len(p.get("prompts", [])),
                    "proto": proto, "tools_list_tokens": toks, "annotations_pct": round(100 * annot_cov),
