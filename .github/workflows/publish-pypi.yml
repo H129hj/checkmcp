@@ -1,9 +1,15 @@
 name: publish-pypi
 
-# Publishes the `checkmcp` package to PyPI when you publish a GitHub Release (or run manually).
-# Setup: create a PyPI API token (https://pypi.org/manage/account/token/) and add it as the repo
-# secret `PYPI_API_TOKEN`. (For the more secure option, configure PyPI Trusted Publishing instead and
-# drop the `password:` line below.)
+# Publishes the `checkmcp` package to PyPI on a GitHub Release (or manual run).
+#
+# RECOMMENDED — Trusted Publishing (no token to store):
+#   On PyPI → your account → Publishing → "Add a pending publisher":
+#     PyPI Project Name: checkmcp | Owner: H129hj | Repository: checkmcp
+#     Workflow name: publish-pypi.yml | Environment: (leave blank)
+#   Then re-run this workflow — it authenticates via OIDC, no secret needed.
+#
+# ALTERNATIVE — API token: create an ACCOUNT-scoped token (project-scoped fails on first upload),
+#   add it as repo secret `PYPI_API_TOKEN`. The `password:` line below will then be used.
 
 on:
   release:
@@ -13,6 +19,8 @@ on:
 jobs:
   build-and-publish:
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write   # required for Trusted Publishing (OIDC)
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
