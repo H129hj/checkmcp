@@ -61,6 +61,23 @@ def human(url, res):
             out.append(f"  [{s['severity']:<6}] {head}")
             out.append(f"     → {s['proposed']}")
             out.append(f"       {s['why']}")
+    ev = res.get("evals")
+    if ev and ev.get("ran"):
+        out.append("")
+        n = len(ev.get("tools_probed", []))
+        out.append(f"  BEHAVIORAL EVAL — verdict: {ev.get('verdict','?').upper()} · {n} read-only tool(s) probed · {ev.get('skipped',0)} skipped")
+        out.append("  " + "─" * 52)
+        if not ev.get("findings"):
+            out.append("  ✅ no runtime injection / exfiltration / leakage observed")
+        for f in ev.get("findings", []):
+            out.append(f"  [{f['severity']:<6}] {f['type']} — {f['tool']}")
+            out.append(f"     ↳ {f['detail']}")
+            if f.get("evidence"):
+                out.append(f"       evidence: {f['evidence']}")
+    elif ev and not ev.get("ran"):
+        out.append("")
+        out.append(f"  BEHAVIORAL EVAL — not run ({ev.get('reason','?')})")
+
     rt = res.get("runtime")
     if rt:
         out.append("")
@@ -87,6 +104,7 @@ def main(argv=None):
     ap.add_argument("--baseline", default=None, help="CI: fingerprint file; a regression (tool mutation/removal) fails the build. Created if missing.")
     ap.add_argument("--gh-summary", action="store_true", help="CI: write a Markdown summary to $GITHUB_STEP_SUMMARY")
     ap.add_argument("--deep", action="store_true", help="Runtime depth via external scanner (mcp-scan/snyk/CHECKMCP_SCANNER_CMD) if present")
+    ap.add_argument("--evals", action="store_true", help="Behavioral sandbox: actually invoke read-only tools with canary inputs to catch tool-output injection / exfiltration (sends real traffic to the server)")
     ap.add_argument("--version", action="version", version=f"checkmcp {__version__}")
     a = ap.parse_args(argv)
 
@@ -119,6 +137,23 @@ def main(argv=None):
                                     "effect": f"outil: {fnd['tool']}", "delta": 0})
         res["findings"].sort(key=lambda x: x["delta"], reverse=True)
 
+    # ---- Evals comportementaux (#T4, opt-in) : sonde le runtime des outils read-only ----
+    if a.evals:
+        from .evals import behavioral_eval
+        p["url"] = a.url
+        ev = behavioral_eval(p, token=a.token)
+        res["evals"] = ev
+        for f in ev.get("findings", []):
+            if f["severity"] == "HIGH":
+                res["findings"].append({"pillar": "security", "severity": "CRITICAL",
+                                        "measured": f"[behavioral] {f['type']} — {f['tool']}",
+                                        "mechanism": f["detail"],
+                                        "effect": f.get("evidence") or "confirmed by live tool invocation", "delta": 0})
+        if ev.get("verdict") == "malicious":
+            res["floor"] = res.get("floor") or "behavioral: active injection/exfiltration confirmed at runtime"
+            res["grade"] = "F" if res["grade"] not in ("F",) else res["grade"]
+        res["findings"].sort(key=lambda x: x["delta"], reverse=True)
+
     # ---- CI: régression vs baseline (rug-pull/retrait d'outil) ----
     regression = None
     if a.baseline:
@@ -140,6 +175,9 @@ def main(argv=None):
     if regression and regression["drift"] and any(e["severity"] in ("CRITICAL", "BREAKING") for e in regression["events"]):
         fail = True
         print(f"[checkmcp] FAIL: regression {regression['verdict']}", file=sys.stderr)
+    if res.get("evals", {}).get("verdict") == "malicious":
+        fail = True
+        print("[checkmcp] FAIL: behavioral eval flagged active injection/exfiltration", file=sys.stderr)
 
     # ---- CI: GitHub Step Summary ----
     if a.gh_summary and os.environ.get("GITHUB_STEP_SUMMARY"):
@@ -161,8 +199,8 @@ def main(argv=None):
         print(json.dumps(res, indent=2, ensure_ascii=False))
     else:
         print(human(a.url, res))
-    # exit code: en mode CI (min-score/baseline), gouverné par fail ; sinon défaut grade F
-    if a.min_score is not None or a.baseline:
+    # exit code: en mode CI (min-score/baseline/evals), gouverné par fail ; sinon défaut grade F
+    if a.min_score is not None or a.baseline or a.evals:
         return 1 if fail else 0
     return 0 if res["grade"] not in ("F",) else 1
 

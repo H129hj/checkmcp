@@ -1,12 +1,17 @@
 import { Suspense } from "react";
 import ReportClient from "./ReportClient";
+import { getUser } from "../../lib/auth";
+import { planOf } from "../../lib/plans";
 
-export const metadata = { title: "Audit d'un serveur MCP" };
+export const metadata = { title: "Audit an MCP server" };
+export const dynamic = "force-dynamic";
 
-export default function Page() {
+export default async function Page() {
+  const user = await getUser();
+  const plan = planOf(user?.plan);
   return (
     <Suspense fallback={<div className="grid place-items-center py-28"><span className="loading loading-spinner loading-lg text-primary" /></div>}>
-      <ReportClient />
+      <ReportClient canPrivate={plan.privateAudits} signedIn={!!user} canEval={plan.privateAudits} />
     </Suspense>
   );
 }

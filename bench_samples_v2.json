@@ -1,0 +1,72 @@
+[
+  {
+    "url": "https://mcp.exa.ai/mcp",
+    "name": "exa",
+    "outcome": 1.0
+  },
+  {
+    "url": "https://learn.microsoft.com/api/mcp",
+    "name": "mslearn",
+    "outcome": 1.0
+  },
+  {
+    "url": "https://mcp.context7.com/mcp",
+    "name": "context7",
+    "outcome": 1.0
+  },
+  {
+    "url": "https://mcp.docs.astro.build/mcp",
+    "name": "astro",
+    "outcome": 1.0
+  },
+  {
+    "url": "https://mcp.deepwiki.com/mcp",
+    "name": "deepwiki",
+    "outcome": 1.0
+  },
+  {
+    "url": "https://mcp.roundtable.now/mcp",
+    "name": "roundtable",
+    "outcome": 0.5
+  },
+  {
+    "url": "https://chainflip-broker.io/mcp",
+    "name": "chainflip",
+    "outcome": 1.0
+  },
+  {
+    "url": "https://gitmcp.io/supabase/supabase",
+    "name": "supabase",
+    "outcome": 1.0
+  },
+  {
+    "url": "https://gitmcp.io/tiangolo/fastapi",
+    "name": "fastapi",
+    "outcome": 1.0
+  },
+  {
+    "url": "https://gitmcp.io/facebook/react",
+    "name": "react",
+    "outcome": 1.0
+  },
+  {
+    "url": "https://gitmcp.io/microsoft/typescript",
+    "name": "typescript",
+    "outcome": 1.0
+  },
+  {
+    "url": "https://gitmcp.io/pytorch/pytorch",
+    "name": "pytorch",
+    "outcome": 1.0
+  },
+  {
+    "url": "https://gitmcp.io/tailwindlabs/tailwindcss",
+    "name": "tailwind",
+    "outcome": 1.0
+  },
+  {
+    "url": "https://gitmcp.io/python/cpython",
+    "name": "cpython",
+    "outcome": 1.0
+  }
+]

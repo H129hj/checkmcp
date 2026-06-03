@@ -24,7 +24,7 @@ export function verifyPassword(pw: string, stored: string): boolean {
   }
 }
 
-export interface User { id: string; email: string }
+export interface User { id: string; email: string; plan: string }
 
 // ---------- sessions ----------
 export async function createSession(userId: string) {
@@ -46,7 +46,7 @@ export async function getUser(): Promise<User | null> {
   const token = cookies().get(COOKIE)?.value;
   if (!token) return null;
   return q1<User>(
-    `SELECT u.id, u.email FROM sessions s JOIN users u ON u.id = s.user_id
+    `SELECT u.id, u.email, u.plan FROM sessions s JOIN users u ON u.id = s.user_id
      WHERE s.token = $1 AND s.expires_at > now()`,
     [token]
   );

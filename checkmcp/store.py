@@ -122,12 +122,20 @@ def upsert_baseline(url, fp, user_id=None, label=None, min_score=None):
 
 
 def list_monitors(active=True):
-    sql = "SELECT url, label, min_score, set_hash, tool_count, updated_at FROM monitors"
+    sql = ("SELECT url, label, min_score, set_hash, tool_count, last_eval_verdict, last_eval_at, updated_at "
+           "FROM monitors")
     if active:
         sql += " WHERE is_active=true"
     sql += " ORDER BY updated_at DESC LIMIT 500"
     r = _exec(sql, fetch="all")
     return r if isinstance(r, list) else []
+
+
+def update_eval(url, verdict, findings=None):
+    """Mémorise le dernier verdict d'eval comportemental d'un serveur surveillé (eval-on-change)."""
+    return _exec(
+        "UPDATE monitors SET last_eval_verdict=%s, last_eval_at=now(), last_eval_findings=%s WHERE url=%s",
+        (verdict, json.dumps(findings or []), url))
 
 
 # ---------- runs (historique des checks) ----------
@@ -173,6 +181,112 @@ def get_repo_audit(slug):
     res = r["result"]
     res["mcpizy_slug"] = r.get("mcpizy_slug")     # lien retour vers la fiche mcpizy
     return res
+
+
+# ---------- clés API & quotas (monétisation) ----------
+
+def api_key_owner(key_hash):
+    """Résout une clé API → {user_id, plan}. None si inconnue."""
+    r = _exec(
+        "SELECT u.id AS user_id, u.plan FROM api_keys k JOIN users u ON u.id = k.user_id WHERE k.key_hash=%s",
+        (key_hash,), fetch="one")
+    return r if isinstance(r, dict) else None
+
+
+def bump_api_usage(key_hash):
+    """Incrémente le compteur du jour pour la clé et renvoie le total après incrément (int)."""
+    r = _exec(
+        """INSERT INTO api_usage (key_hash, day, count) VALUES (%s, current_date, 1)
+           ON CONFLICT (key_hash, day) DO UPDATE SET count = api_usage.count + 1
+           RETURNING count""",
+        (key_hash,), fetch="one")
+    return r.get("count") if isinstance(r, dict) else 0
+
+
+DEFAULT_POLICY = {
+    "min_score": 70, "max_severity": "MEDIUM", "block_floor": True,
+    "block_lethal_trifecta": True, "block_malicious_eval": True,
+    "require_monitored": False, "allowlist_hosts": [], "denylist_hosts": [],
+}
+
+
+def get_policy(user_id):
+    """Policy de gouvernance d'un utilisateur/org (defaults fusionnés)."""
+    r = _exec("SELECT config FROM policies WHERE user_id=%s", (user_id,), fetch="one")
+    cfg = r.get("config") if isinstance(r, dict) else None
+    if isinstance(cfg, str):
+        try:
+            cfg = json.loads(cfg)
+        except Exception:
+            cfg = None
+    return {**DEFAULT_POLICY, **(cfg or {})}
+
+
+def set_policy(user_id, config):
+    return _exec(
+        """INSERT INTO policies (user_id, config, updated_at) VALUES (%s,%s, now())
+           ON CONFLICT (user_id) DO UPDATE SET config=EXCLUDED.config, updated_at=now()""",
+        (user_id, json.dumps(config)))
+
+
+def last_eval(url):
+    r = _exec("SELECT last_eval_verdict FROM monitors WHERE url=%s", (url,), fetch="one")
+    return r.get("last_eval_verdict") if isinstance(r, dict) else None
+
+
+# ---------- gateway (proxy MCP in-band, mode passif) ----------
+
+def create_gateway(gid, user_id, backend_url, label=None, secret=None):
+    return _exec("INSERT INTO gateways (id, user_id, backend_url, label, secret) VALUES (%s,%s,%s,%s,%s)",
+                 (gid, user_id, backend_url, label, secret))
+
+
+def get_gateway(gid):
+    r = _exec("SELECT id, user_id, backend_url, label, mode, secret FROM gateways WHERE id=%s", (gid,), fetch="one")
+    return r if isinstance(r, dict) else None
+
+
+def set_gateway_mode(gid, user_id, mode):
+    mode = mode if mode in ("passive", "active") else "passive"
+    return _exec("UPDATE gateways SET mode=%s WHERE id=%s AND user_id=%s", (mode, gid, user_id))
+
+
+def list_gateways(user_id):
+    r = _exec("SELECT id, backend_url, label, mode, created_at FROM gateways WHERE user_id=%s ORDER BY created_at DESC",
+              (user_id,), fetch="all")
+    return r if isinstance(r, list) else []
+
+
+def delete_gateway(gid, user_id):
+    return _exec("DELETE FROM gateways WHERE id=%s AND user_id=%s", (gid, user_id))
+
+
+def log_gateway_call(gid, method, tool=None, flagged=False, verdict=None, findings=None, ms=None):
+    return _exec(
+        "INSERT INTO gateway_calls (gateway_id, method, tool, flagged, verdict, findings, ms) VALUES (%s,%s,%s,%s,%s,%s,%s)",
+        (gid, method, tool, flagged, verdict, json.dumps(findings or []), ms))
+
+
+def list_gateway_calls(gid, limit=100):
+    r = _exec("SELECT method, tool, flagged, verdict, findings, ms, created_at FROM gateway_calls "
+              "WHERE gateway_id=%s ORDER BY created_at DESC LIMIT %s", (gid, limit), fetch="all")
+    return r if isinstance(r, list) else []
+
+
+def gateway_summary(gid):
+    r = _exec("SELECT count(*) AS calls, count(*) FILTER (WHERE flagged) AS flagged, max(created_at) AS last "
+              "FROM gateway_calls WHERE gateway_id=%s", (gid,), fetch="one")
+    return r if isinstance(r, dict) else {"calls": 0, "flagged": 0, "last": None}
+
+
+def monitor_webhooks(url):
+    """URLs de webhook des utilisateurs (plan webhook-capable) qui suivent ce serveur."""
+    r = _exec(
+        """SELECT um.webhook_url, um.min_score FROM user_monitors um JOIN users u ON u.id = um.user_id
+           WHERE um.url=%s AND um.webhook_url IS NOT NULL AND um.webhook_url <> ''
+             AND u.plan IN ('pro','team')""",
+        (url,), fetch="all")
+    return r if isinstance(r, list) else []
 
 
 def list_repo_audits(limit=300, order="score", source=None):

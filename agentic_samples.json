@@ -1,0 +1,56 @@
+[
+  {
+    "url": "https://mcp.exa.ai/mcp",
+    "name": "exa",
+    "outcome": 1.0,
+    "turns": 9
+  },
+  {
+    "url": "https://learn.microsoft.com/api/mcp",
+    "name": "mslearn",
+    "outcome": 1.0,
+    "turns": 5
+  },
+  {
+    "url": "https://mcp.context7.com/mcp",
+    "name": "context7",
+    "outcome": 0.5,
+    "turns": 5
+  },
+  {
+    "url": "https://mcp.docs.astro.build/mcp",
+    "name": "astro",
+    "outcome": 1.0,
+    "turns": 4
+  },
+  {
+    "url": "https://mcp.deepwiki.com/mcp",
+    "name": "deepwiki",
+    "outcome": 1.0,
+    "turns": 1
+  },
+  {
+    "url": "https://mcp.roundtable.now/mcp",
+    "name": "roundtable",
+    "outcome": 0.5,
+    "turns": 4
+  },
+  {
+    "url": "https://gitmcp.io/supabase/supabase",
+    "name": "supabase",
+    "outcome": 1.0,
+    "turns": 7
+  },
+  {
+    "url": "https://chainflip-broker.io/mcp",
+    "name": "chainflip",
+    "outcome": 1.0,
+    "turns": 4
+  },
+  {
+    "url": "https://gitmcp.io/microsoft/typescript",
+    "name": "typescript",
+    "outcome": 1.0,
+    "turns": 3
+  }
+]

@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { q, q1 } from "../../lib/db";
 import { hashPassword, verifyPassword, createSession, destroySession, getUser, newApiKey } from "../../lib/auth";
+import { planOf } from "../../lib/plans";
 
 const API = process.env.CHECKMCP_API || "http://127.0.0.1:8799";
 const emailOk = (e: string) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e);
@@ -43,6 +44,12 @@ export async function followMonitor(fd: FormData) {
   if (!user) redirect("/login");
   const url = String(fd.get("url") || "").trim();
   if (!url) return;
+  // quota de monitors selon le plan (les mises à jour d'un monitor déjà suivi passent toujours)
+  const exists = await q1("SELECT 1 FROM user_monitors WHERE user_id=$1 AND url=$2", [user!.id, url]);
+  if (!exists) {
+    const c = await q1<{ n: string }>("SELECT count(*) AS n FROM user_monitors WHERE user_id=$1", [user!.id]);
+    if (Number(c?.n || 0) >= planOf(user!.plan).monitors) redirect("/pricing?reason=monitors");
+  }
   // s'assure qu'une baseline globale existe (le moteur Python épingle le fingerprint)
   try { await fetch(`${API}/api/monitor?url=${encodeURIComponent(url)}&pin=1`, { cache: "no-store" }); } catch {}
   await q(
@@ -53,6 +60,17 @@ export async function followMonitor(fd: FormData) {
   revalidatePath("/account");
 }
 
+export async function setWebhook(fd: FormData) {
+  const user = await getUser();
+  if (!user) redirect("/login");
+  if (!planOf(user!.plan).webhookAlerts) redirect("/pricing?reason=webhook");
+  const url = String(fd.get("url") || "").trim();
+  const hook = String(fd.get("webhook_url") || "").trim();
+  if (hook && !/^https?:\/\/.+/.test(hook)) return;
+  await q("UPDATE user_monitors SET webhook_url=$3 WHERE user_id=$1 AND url=$2", [user!.id, url, hook || null]);
+  revalidatePath("/account");
+}
+
 export async function unfollowMonitor(fd: FormData) {
   const user = await getUser();
   if (!user) redirect("/login");
@@ -60,9 +78,13 @@ export async function unfollowMonitor(fd: FormData) {
   revalidatePath("/account");
 }
 
+const KEY_LIMIT: Record<string, number> = { free: 1, pro: 3, team: 20 };
+
 export async function createApiKey(fd: FormData) {
   const user = await getUser();
   if (!user) redirect("/login");
+  const c = await q1<{ n: string }>("SELECT count(*) AS n FROM api_keys WHERE user_id=$1", [user!.id]);
+  if (Number(c?.n || 0) >= (KEY_LIMIT[user!.plan] ?? 1)) redirect("/pricing?reason=keys");
   const { key, hash, prefix } = newApiKey();
   await q("INSERT INTO api_keys (user_id, name, key_hash, prefix) VALUES ($1,$2,$3,$4)", [
     user!.id, String(fd.get("name") || "default"), hash, prefix,

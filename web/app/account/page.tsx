@@ -4,8 +4,9 @@ import { cookies } from "next/headers";
 import { getUser } from "../../lib/auth";
 import { q } from "../../lib/db";
 import { GRADE_CHIP, gradeKey, hostOf } from "../../lib/format";
-import { logout, followMonitor, unfollowMonitor, createApiKey, deleteApiKey } from "./actions";
+import { logout, followMonitor, unfollowMonitor, createApiKey, deleteApiKey, setWebhook } from "./actions";
 import CopyButton from "../../components/CopyButton";
+import { planOf } from "../../lib/plans";
 
 export const metadata = { title: "My space" };
 export const dynamic = "force-dynamic";
@@ -20,12 +21,13 @@ function Grade({ score, grade }: { score?: number; grade?: string }) {
   );
 }
 
-export default async function Account() {
+export default async function Account({ searchParams }: { searchParams: { upgraded?: string } }) {
   const user = await getUser();
   if (!user) redirect("/login");
+  const plan = planOf(user.plan);
 
   const monitors = await q<any>(
-    `SELECT um.url, um.label, um.min_score, m.tool_count, r.score, r.grade, r.drift, r.verdict
+    `SELECT um.url, um.label, um.min_score, um.webhook_url, m.tool_count, r.score, r.grade, r.drift, r.verdict
        FROM user_monitors um LEFT JOIN monitors m ON m.url = um.url
        LEFT JOIN LATERAL (SELECT score, grade, drift, verdict FROM runs WHERE runs.url = um.url ORDER BY created_at DESC LIMIT 1) r ON true
       WHERE um.user_id = $1 ORDER BY um.created_at DESC`, [user.id]);
@@ -45,6 +47,35 @@ export default async function Account() {
         <form action={logout}><button className="btn btn-sm btn-ghost" type="submit">Sign out</button></form>
       </div>
 
+      {searchParams?.upgraded && (
+        <div role="alert" className="alert mt-5 border-g-a/40 bg-g-a/10">
+          <span className="text-g-a">✓ You’re upgraded. Thanks for supporting CheckMCP.</span>
+        </div>
+      )}
+
+      {/* plan */}
+      <div className="card mt-6 border border-base-content/10 bg-base-200/60">
+        <div className="card-body flex-row flex-wrap items-center justify-between gap-3 p-4">
+          <div>
+            <div className="font-mono text-xs uppercase tracking-[0.18em] text-base-content/40">Plan</div>
+            <div className="mt-0.5 flex items-center gap-2">
+              <span className="text-lg font-extrabold">{plan.name}</span>
+              {plan.id === "free" && <span className="badge badge-sm border-base-content/20 font-mono">free</span>}
+            </div>
+            <div className="mt-1 font-mono text-xs text-base-content/50">
+              {monitors.length}/{plan.monitors} monitors · {plan.apiPerDay.toLocaleString("en-US")} API audits/day
+              {plan.webhookAlerts ? " · webhooks on" : " · no webhooks"}
+            </div>
+          </div>
+          <div className="flex gap-2">
+            {plan.id === "free"
+              ? <Link href="/pricing" className="btn btn-primary btn-sm">Upgrade</Link>
+              : <form action="/api/billing/portal" method="post"><button className="btn btn-sm" type="submit">Manage subscription</button></form>}
+            <Link href="/pricing" className="btn btn-ghost btn-sm">Compare plans</Link>
+          </div>
+        </div>
+      </div>
+
       {/* follow */}
       <form action={followMonitor} className="card mt-7 border border-base-content/10 bg-base-200/60">
         <div className="card-body flex-row flex-wrap items-center gap-2 p-4">
@@ -57,7 +88,10 @@ export default async function Account() {
       </form>
 
       {/* monitors */}
-      <h2 className="mb-3 mt-9 text-xl font-extrabold">My monitors <span className="font-mono text-sm text-base-content/40">({monitors.length})</span></h2>
+      <div className="mb-3 mt-9 flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-xl font-extrabold">My monitors <span className="font-mono text-sm text-base-content/40">({monitors.length})</span></h2>
+        <Link href="/fleet" className="btn btn-outline btn-sm">Fleet risk dashboard ›</Link>
+      </div>
       {monitors.length === 0 ? (
         <p className="text-base-content/60">No tracked monitors. Add a URL above or click “Track this server” from a report.</p>
       ) : (
@@ -65,8 +99,21 @@ export default async function Account() {
           <table className="table">
             <tbody>
               {monitors.map((m) => (
-                <tr key={m.url} className="hover:bg-base-100/40">
-                  <td><div className="font-semibold">{m.label || m.name || hostOf(m.url)}</div><div className="font-mono text-xs text-base-content/40">{hostOf(m.url)} · min {m.min_score ?? "—"}</div></td>
+                <tr key={m.url} className="align-top hover:bg-base-100/40">
+                  <td>
+                    <div className="font-semibold">{m.label || m.name || hostOf(m.url)}</div>
+                    <div className="font-mono text-xs text-base-content/40">{hostOf(m.url)} · min {m.min_score ?? "—"}</div>
+                    {plan.webhookAlerts ? (
+                      <form action={setWebhook} className="mt-2 flex flex-wrap items-center gap-1.5">
+                        <input type="hidden" name="url" value={m.url} />
+                        <input name="webhook_url" type="url" defaultValue={m.webhook_url || ""} placeholder="https://hooks.… (drift & threshold alerts)" spellCheck={false} aria-label="Webhook URL"
+                          className="input input-xs input-bordered w-full max-w-xs bg-base-100 font-mono text-xs sm:w-72" />
+                        <button className="btn btn-ghost btn-xs" type="submit">{m.webhook_url ? "save" : "+ webhook"}</button>
+                      </form>
+                    ) : (
+                      <Link href="/pricing?reason=webhook" className="mt-1 inline-block font-mono text-[11px] text-base-content/40 hover:text-primary">+ drift webhook (Pro)</Link>
+                    )}
+                  </td>
                   <td className="hidden sm:table-cell">{m.drift ? <span className="badge badge-sm border-g-d/40 bg-g-d/10 font-mono text-g-d">⚠ {m.verdict || "drift"}</span> : <span className="badge badge-sm border-g-a/35 bg-g-a/10 font-mono text-g-a">stable</span>}</td>
                   <td className="text-right"><Grade score={m.score} grade={m.grade} /></td>
                   <td className="w-12 text-right"><form action={unfollowMonitor}><input type="hidden" name="url" value={m.url} /><button className="btn btn-ghost btn-xs" type="submit" title="Untrack" aria-label="Untrack">✕</button></form></td>

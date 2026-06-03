@@ -35,6 +35,7 @@ Hard floors: secret-in-schema → cap D, failed handshake → cap F. Every penal
 | `--baseline file` | CI: pin tool definitions; fail on regression (rug-pull) |
 | `--gh-summary` | CI: write a Markdown summary to `$GITHUB_STEP_SUMMARY` |
 | `--deep` | runtime depth via an external scanner (mcp-scan/snyk) if present |
+| `--evals` | behavioral sandbox: actually invokes read-only tools with canary inputs to catch tool-output prompt-injection, exfiltration vectors, secret/PII leakage and context bombs (sends real traffic; CI-fails on a malicious verdict) |
 
 ## GitHub Action
 
@@ -60,6 +61,6 @@ Full reports, public directory, live badges and continuous drift monitoring at *
 ## Honest limitations
 - Percentile bands come from a growing corpus (one+ registries) — widening over time.
 - Exact tokens with `pipx install "checkmcp[exact-tokens]"` (cl100k_base); otherwise chars/4 approximation.
-- Pillar weights are not yet validated against an agent-success benchmark (construct validity = roadmap endgame).
+- Pillar weights are expert priors. `python -m checkmcp.calibrate samples.json` validates them against a labeled agent-success sample (per-pillar correlation + OLS-suggested weights + construct-validity R²) — supply real outcomes to close the loop.
 
 MIT.

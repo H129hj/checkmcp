@@ -1,6 +1,6 @@
 [project]
 name = "checkmcp"
-version = "0.3.0"
+version = "0.4.0"
 description = "CheckMCP — vendor-neutral quality/security/context-cost audit & score for any MCP server."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -11,6 +11,7 @@ dependencies = []  # stdlib-only core (urllib). tiktoken optional for exact toke
 
 [project.optional-dependencies]
 exact-tokens = ["tiktoken>=0.7"]
+test = ["pytest>=7"]
 
 [project.scripts]
 checkmcp = "checkmcp.cli:main"

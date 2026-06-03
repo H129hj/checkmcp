@@ -185,12 +185,108 @@ def _well_known(url):
     return {"oauth_protected_resource": pr == 200, "oauth_authorization_server": as_ == 200}
 
 
+try:
+    from . import __version__ as _CKVER
+except Exception:
+    _CKVER = "0.4.0"
+
 INIT = {"jsonrpc": "2.0", "id": 1, "method": "initialize",
-        "params": {"protocolVersion": "2024-11-05", "capabilities": {}, "clientInfo": {"name": "checkmcp", "version": "0.1.0"}}}
+        "params": {"protocolVersion": "2024-11-05", "capabilities": {}, "clientInfo": {"name": "checkmcp", "version": _CKVER}}}
 
 
-def probe(url, token=None):
-    """Retourne le Probe artifact (dict) ou {error:..., auth_required?:bool}."""
+def call_tools(url, calls, token=None, timeout=12):
+    """Ouvre un transport (Streamable-HTTP ou SSE legacy), exécute une liste d'appels d'outils
+    [(name, arguments), …] et renvoie [{name, ok, result, text, error, ms}, …] aligné.
+    Réservé aux evals comportementaux (opt-in) — n'appelle QUE ce que le caller a sélectionné."""
+    st, sid, raw, _, wa = _post(url, INIT, token=token)
+    kind, sse = None, None
+    if st == 200:
+        kind = "streamable"
+    elif st in (404, 405, 406, 400, 415) or url.rstrip("/").endswith("sse"):
+        sse = SSESession(url, token=token)
+        if sse.open():
+            resp, _ = sse.call(INIT)
+            if resp is not None:
+                kind = "sse"
+            else:
+                sse.close(); sse = None
+    if kind is None:
+        return {"error": "handshake failed", "http": st}
+
+    def _call(method, params=None, idn=None):
+        body = {"jsonrpc": "2.0", "method": method, "params": params or {}}
+        if idn is not None:
+            body["id"] = idn
+        if kind == "streamable":
+            _, _, r, ms, _ = _post(url, body, sid=sid, token=token, timeout=timeout)
+            return _parse(r), ms
+        return sse.call(body, timeout=timeout)
+
+    out = []
+    try:
+        _call("notifications/initialized")
+        for i, (name, args) in enumerate(calls):
+            t0 = time.time()
+            o, ms = _call("tools/call", {"name": name, "arguments": args or {}}, idn=300 + i)
+            o = o or {}
+            err = o.get("error")
+            res = o.get("result") or {}
+            # texte concaténé des content blocks (là où vit le poisoning de sortie)
+            text = ""
+            for c in (res.get("content") or []):
+                if isinstance(c, dict):
+                    text += (c.get("text") or "") + "\n"
+            out.append({
+                "name": name,
+                "ok": err is None,
+                "is_error": bool(res.get("isError")),
+                "result": res,
+                "text": text,
+                "error": err,
+                "ms": round(ms),
+            })
+    finally:
+        if sse:
+            sse.close()
+    return {"calls": out}
+
+
+def _shape(name, o, ms, sid):
+    o = o or {}
+    err = o.get("error"); res = o.get("result") or {}
+    text = "".join((c.get("text") or "") for c in (res.get("content") or []) if isinstance(c, dict))
+    return {"name": name, "ok": err is None, "is_error": bool(res.get("isError")),
+            "result": res, "text": text, "error": err, "ms": ms, "_session": sid}
+
+
+def call_one(url, name, args, token=None, session_id=None, timeout=20):
+    """Un seul tools/call sur un backend STREAMABLE-HTTP, RÉUTILISANT `session_id` si fourni (sinon INIT).
+    Renvoie un dict (forme call_tools) avec `_session`, ou None si non-streamable/échec → le caller retombe sur call_tools."""
+    body = {"jsonrpc": "2.0", "id": 70, "method": "tools/call", "params": {"name": name, "arguments": args or {}}}
+
+    def _do(sid):
+        import time as _t
+        t0 = _t.time()
+        st, _, raw, _, _ = _post(url, body, sid=sid, token=token, timeout=timeout)
+        return st, _parse(raw), round((_t.time() - t0) * 1000)
+
+    if session_id:
+        st, o, ms = _do(session_id)
+        if st == 200 and isinstance(o, dict) and ("result" in o or "error" in o):
+            return _shape(name, o, ms, session_id)        # session réutilisée → 1 seul round-trip
+    st, sid, raw, _, _ = _post(url, INIT, token=token)    # sinon INIT complet (streamable uniquement)
+    if st != 200 or not sid:
+        return None
+    _post(url, {"jsonrpc": "2.0", "method": "notifications/initialized", "params": {}}, sid=sid, token=token)
+    st, o, ms = _do(sid)
+    if st != 200:
+        return None
+    return _shape(name, o, ms, sid)
+
+
+def probe(url, token=None, discover=True):
+    """Retourne le Probe artifact (dict) ou {error:..., auth_required?:bool}.
+    discover=False saute la découverte OAuth `.well-known` (4 GET × 4s) — utile pour le re-probe rapide des evals."""
     transport = None          # ("streamable", sid) | ("sse", SSESession)
     init = {}
     init_ms = 0
@@ -270,12 +366,12 @@ def probe(url, token=None):
             "server": result.get("serverInfo", {}),
             "protocolVersion": result.get("protocolVersion", "?"),
             "transport": "sse-legacy" if kind == "sse" else "streamable-http",
-            "auth": "oauth" if (token or _well_known(url).get("oauth_protected_resource")) else "none",
+            "auth": "oauth" if (token or (discover and _well_known(url).get("oauth_protected_resource"))) else "none",
             "capabilities": caps,
             "tools": tools, "resources": resources, "prompts": prompts,
             "tools_paginated": tools_paginated,
             "jsonrpc_conformance": jsonrpc,
-            "well_known": _well_known(url),
+            "well_known": _well_known(url) if discover else {},
             "capabilities_coherence": {
                 "declares_resources": "resources" in caps, "has_resources": bool(resources),
                 "declares_prompts": "prompts" in caps, "has_prompts": bool(prompts),

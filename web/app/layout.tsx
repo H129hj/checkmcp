@@ -21,6 +21,7 @@ const NAV = [
   { href: "/directory", label: "Directory" },
   { href: "/dashboard", label: "Monitoring" },
   { href: "/badge", label: "Badge" },
+  { href: "/pricing", label: "Pricing" },
   { href: "/#methodology", label: "Methodology" },
 ];
 
@@ -74,9 +75,18 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <main className="mx-auto max-w-6xl px-4">{children}</main>
 
         <footer className="mt-20 border-t border-base-content/10">
-          <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-8 font-mono text-xs text-base-content/50">
-            <span>checkmcp.dev — vendor-neutral MCP server audits</span>
-            <span className="text-base-content/35">spec 2025-11-25 · OWASP MCP Top 10 · open methodology</span>
+          <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-8 font-mono text-xs text-base-content/50">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <span>checkmcp.dev — vendor-neutral MCP server audits</span>
+              <span className="text-base-content/35">spec 2025-11-25 · OWASP MCP Top 10 · open methodology</span>
+            </div>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-base-content/10 pt-3 text-base-content/40">
+              <span>© {new Date().getFullYear()} CheckMCP</span>
+              <Link href="/pricing" className="hover:text-base-content">Pricing</Link>
+              <Link href="/directory" className="hover:text-base-content">Directory</Link>
+              <Link href="/terms" className="hover:text-base-content">Terms</Link>
+              <Link href="/privacy" className="hover:text-base-content">Privacy</Link>
+            </div>
           </div>
         </footer>
       </body>

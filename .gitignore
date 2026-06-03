@@ -4,3 +4,11 @@ dist/
 build/
 *.egg-info/
 .DS_Store
+node_modules/
+.next/
+.env
+.env.*
+*.pem
+*.key
+baselines.json
+catalog.json
