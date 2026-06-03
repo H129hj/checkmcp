@@ -55,8 +55,29 @@ jobs:
           baseline: .checkmcp-baseline.json   # commit it → fails on rug-pull
 ```
 
+## Behavioral evals (`--evals`)
+Static analysis catches *declared* danger; `--evals` catches *runtime* danger by actually invoking
+read-only tools with canary inputs and inspecting the **responses** for tool-output prompt-injection,
+exfiltration vectors and secret/PII leakage (multilingual; optional callback-canary confirms exfil).
+CI-fails on a malicious verdict.
+
+## Self-hosted security gateway
+Beyond auditing, CheckMCP ships an **in-band MCP gateway** — a proxy you put between your agent and an
+MCP server. It inspects every call, and in *active* mode **blocks/strips** tool-poisoning & exfiltration
+before they reach the agent. Run it in your own infra (tool traffic never leaves your network):
+
+```bash
+docker pull ghcr.io/h129hj/checkmcp-gateway:latest   # or build from source
+docker run -p 8080:8080 -e GATEWAY_BACKEND_URL=https://mcp.example.com/mcp \
+  -e GATEWAY_MODE=active -e GATEWAY_SECRET=$(openssl rand -hex 16) \
+  ghcr.io/h129hj/checkmcp-gateway:latest
+```
+
+See **[GATEWAY.md](GATEWAY.md)** for config (passive/active, OAuth backends, policy, logs).
+
 ## Hosted
-Full reports, public directory, live badges and continuous drift monitoring at **[checkmcp.dev](https://checkmcp.dev)**.
+Full reports, public directory, live badges, continuous drift monitoring, a governance policy API and a
+hosted gateway at **[checkmcp.dev](https://checkmcp.dev)**.
 
 ## Honest limitations
 - Percentile bands come from a growing corpus (one+ registries) — widening over time.
