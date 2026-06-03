@@ -37,6 +37,37 @@ export default async function Home() {
         ))}
       </section>
 
+      {/* protection layer — the moat (gateway + monitoring + evals) */}
+      <section id="gateway" className="mt-20 scroll-mt-24">
+        <div className="font-mono text-xs uppercase tracking-[0.22em] text-primary/80">Beyond the score</div>
+        <h2 className="mb-2 mt-3 text-[clamp(1.75rem,4vw,2.75rem)] font-extrabold leading-tight">
+          Auditing flags the risk. The gateway <span className="text-primary">stops it</span> reaching your agent.
+        </h2>
+        <p className="mb-7 max-w-2xl text-lg text-base-content/60">
+          A score is a snapshot — production needs more. Catch runtime tool-poisoning, watch for rug-pulls,
+          and gate every MCP call in real time. Hosted, or self-hosted in your own VPC.
+        </p>
+        <div className="grid gap-4 md:grid-cols-3">
+          {[
+            { tag: "runtime", t: "Behavioral evals", d: "We actually invoke read-only tools with canary inputs and inspect the responses for tool-output prompt-injection, exfiltration and secret leakage — what static analysis can’t see." },
+            { tag: "always-on", t: "Continuous monitoring", d: "Tracked servers are re-checked and behaviorally re-evaluated on drift. Tool-pinning catches rug-pulls; you get drift & score-threshold alerts via webhook." },
+            { tag: "enforce", t: "In-band gateway", d: "Put CheckMCP between your agent and the MCP server. Passive observes & logs; active blocks policy violations and strips injected/exfiltrating tool responses before your agent ever sees them." },
+          ].map((c) => (
+            <div key={c.t} className="card border border-base-content/10 bg-base-200/60">
+              <div className="card-body gap-2 p-6">
+                <span className="badge badge-sm w-fit border-primary/40 bg-primary/10 font-mono text-primary">{c.tag}</span>
+                <h3 className="text-lg font-extrabold">{c.t}</h3>
+                <p className="text-sm text-base-content/60">{c.d}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="mt-6 flex flex-wrap gap-3">
+          <Link href="/gateways" className="btn btn-primary btn-sm">Deploy a gateway ›</Link>
+          <Link href="/pricing" className="btn btn-ghost btn-sm">See plans ›</Link>
+        </div>
+      </section>
+
       {servers.length > 0 && (
         <section className="mt-16">
           <div className="mb-4 flex items-baseline justify-between">

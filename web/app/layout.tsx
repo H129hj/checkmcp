@@ -18,11 +18,11 @@ export const metadata: Metadata = {
 };
 
 const NAV = [
+  { href: "/#gateway", label: "Gateway" },
   { href: "/directory", label: "Directory" },
   { href: "/dashboard", label: "Monitoring" },
   { href: "/badge", label: "Badge" },
   { href: "/pricing", label: "Pricing" },
-  { href: "/#methodology", label: "Methodology" },
 ];
 
 const NO_FLASH = `(function(){try{var t=localStorage.getItem('theme');if(t!=='checkmcp'&&t!=='checkmcp-light'){t=window.matchMedia('(prefers-color-scheme: light)').matches?'checkmcp-light':'checkmcp';}document.documentElement.dataset.theme=t;}catch(e){document.documentElement.dataset.theme='checkmcp';}})();`;
