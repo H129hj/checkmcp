@@ -10,7 +10,7 @@ export const alt = "MCP Score by CheckMCP";
 export default async function OG({ params }: { params: { slug: string } }) {
   const dir = await getDirectory("recent", 500);
   const row = dir.find((d) => d.slug === params.slug);
-  const res = row ? await getScore(row.url) : null;
+  const res = row ? await getScore(row.url, true) : null;   // cached: no live re-probe (fast OG image)
   const ok = res && !res.error;
   const score = ok ? res.score : 0;
   const grade = ok ? res.grade : "?";

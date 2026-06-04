@@ -54,7 +54,7 @@ export default function Report({ res }: { res: AuditResult }) {
           {!res.private && (
             <div className="flex w-full flex-col gap-2 sm:w-44">
               <FollowButton url={res.url} />
-              <a className="btn btn-sm btn-ghost" href={`/api/score?url=${encodeURIComponent(res.url)}&refresh=1`} target="_blank" rel="noreferrer">Raw JSON ›</a>
+              <a className="btn btn-sm btn-ghost" href={`/api/score?url=${encodeURIComponent(res.url)}&cached=1`} target="_blank" rel="nofollow noreferrer">Raw JSON ›</a>
             </div>
           )}
         </div>

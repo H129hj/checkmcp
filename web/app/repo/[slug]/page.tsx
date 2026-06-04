@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 import Link from "next/link";
 import ScoreRing from "../../../components/ScoreRing";
 import CopyButton from "../../../components/CopyButton";
@@ -13,14 +14,12 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   const r = await getRepo(params.slug);
   if (!r || r.error) return { title: "Unknown MCP repo" };
   const desc = `Repo-Quality Score for ${r.repo}: ${r.score}/100 (grade ${r.grade}). Maintenance, license, adoption, documentation — CheckMCP audit.`;
-  return { title: `${r.name || r.repo} — Repo Score ${r.score}/${r.grade}`, description: desc, alternates: { canonical: `https://checkmcp.dev/repo/${params.slug}` }, openGraph: { title: `${r.repo} — Repo Score ${r.score}`, description: desc } };
+  return { title: `${r.name || r.repo} — Repo Score ${r.score}/${r.grade}`, description: desc, alternates: { canonical: `https://checkmcp.dev/repo/${params.slug}` }, openGraph: { title: `${r.repo} — Repo Score ${r.score}`, description: desc, url: `https://checkmcp.dev/repo/${params.slug}`, type: "website" } };
 }
 
 export default async function RepoPage({ params }: { params: { slug: string } }) {
   const r = await getRepo(params.slug);
-  if (!r || r.error) {
-    return <div className="max-w-xl pt-20"><h1 className="mb-3 text-2xl font-extrabold">Unknown repo</h1><p className="text-base-content/60">This repository hasn&apos;t been audited yet. <Link href="/directory?kind=repo" className="text-primary">Browse repos ›</Link></p></div>;
-  }
+  if (!r || r.error) notFound();   // real 404 for unknown repos
   const f = r.facts || {};
   const gk = gradeKey(r.grade);
   const badgeUrl = `/badge/repo/${params.slug}.svg`;

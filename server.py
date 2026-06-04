@@ -513,6 +513,11 @@ class H(BaseHTTPRequestHandler):
                 return self._send(400, json.dumps({"error": "param ?url= requis"}), "application/json")
             if not public_url(url):
                 return self._send(400, _json({"error": "url must be a public http(s) MCP endpoint"}), "application/json", cache=0)
+            # mode cache (pages SEO) : audit STOCKÉ sans re-prober (rapide) ; le timer rafraîchit en fond
+            if qs.get("cached", ["0"])[0] in ("1", "true"):
+                cr = store.get_audit(url, max_age_s=10**9) if store.enabled() else None
+                if cr:
+                    return self._send(200, _json(cr), "application/json", cache=21600)
             _owner, qerr = quota_check(self.headers)        # API métrée si clé X-CheckMCP-Key fournie
             if qerr:
                 return self._send(qerr[0], _json(qerr[1]), "application/json", cache=0)

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 import Link from "next/link";
 import Report from "../../../components/Report";
 import { getDirectory, getScore } from "../../../lib/api";
@@ -10,7 +11,7 @@ async function resolve(slug: string) {
   const dir = await getDirectory("recent", 500);
   const row = dir.find((d) => d.slug === slug);
   if (!row) return null;
-  const res = await getScore(row.url);
+  const res = await getScore(row.url, true);   // cached: read stored audit, no live re-probe
   return res && !res.error ? res : null;
 }
 
@@ -23,20 +24,13 @@ export async function generateMetadata({ params }: { params: { slug: string } })
     title: `${name} — MCP Score ${res.score}/${res.grade}`,
     description: desc,
     alternates: { canonical: `https://checkmcp.dev/mcp/${params.slug}` },
-    openGraph: { title: `${name} — MCP Score ${res.score}`, description: desc },
+    openGraph: { title: `${name} — MCP Score ${res.score}`, description: desc, url: `https://checkmcp.dev/mcp/${params.slug}`, type: "website" },
   };
 }
 
 export default async function McpPage({ params }: { params: { slug: string } }) {
   const res = await resolve(params.slug);
-  if (!res) {
-    return (
-      <div className="max-w-xl pt-20">
-        <h1 className="mb-3 text-2xl font-extrabold">Unknown server</h1>
-        <p className="text-base-content/60">This server hasn&apos;t been audited yet. <Link href="/" className="text-primary">Audit a URL ›</Link></p>
-      </div>
-    );
-  }
+  if (!res) notFound();   // real 404 for unknown/removed servers (no soft-404, not indexable)
   const name = res.server?.name || hostOf(res.url);
   const ld = {
     "@context": "https://schema.org",

@@ -21,8 +21,9 @@ export interface DirRow {
 export const getDirectory = (order = "score", limit = 200) =>
   getJSON<{ servers: DirRow[] }>(`/api/directory?order=${order}&limit=${limit}`, 60).then((d) => d?.servers ?? []);
 
-export const getScore = (url: string) =>
-  getJSON<any>(`/api/score?url=${encodeURIComponent(url)}`, 300);
+// cached=true → reads the stored audit from DB without re-probing (fast; for SEO pages / OG images)
+export const getScore = (url: string, cached = false) =>
+  getJSON<any>(`/api/score?url=${encodeURIComponent(url)}${cached ? "&cached=1" : ""}`, 300);
 
 export const getMonitors = () =>
   getJSON<{ monitors: any[] }>(`/api/monitors`, 0).then((d) => d?.monitors ?? []);
