@@ -1,4 +1,4 @@
-export const metadata = { title: "Privacy Policy — CheckMCP" };
+export const metadata = { title: "Privacy Policy — CheckMCP", description: "How CheckMCP collects, uses and protects your data — GDPR/CCPA rights, sub-processors and retention.", alternates: { canonical: "/privacy" } };
 
 const ENTITY = process.env.LEGAL_ENTITY || "[LEGAL ENTITY NAME]";
 const EMAIL = process.env.LEGAL_EMAIL || "[contact@checkmcp.dev]";

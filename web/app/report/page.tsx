@@ -3,7 +3,7 @@ import ReportClient from "./ReportClient";
 import { getUser } from "../../lib/auth";
 import { planOf } from "../../lib/plans";
 
-export const metadata = { title: "Audit an MCP server" };
+export const metadata = { title: "Audit an MCP server", alternates: { canonical: "/report" }, robots: { index: false } };
 export const dynamic = "force-dynamic";
 
 export default async function Page() {

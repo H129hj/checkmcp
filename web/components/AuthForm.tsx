@@ -23,12 +23,12 @@ export default function AuthForm({ mode }: { mode: "login" | "signup" }) {
         <div className="card-body gap-3">
           <label className="form-control">
             <span className="label-text font-mono text-xs text-base-content/60">EMAIL</span>
-            <input name="email" type="email" required autoComplete="email" spellCheck={false} inputMode="email"
-              className="input input-bordered bg-base-100 font-mono text-sm" placeholder="toi@exemple.com" />
+            <input name="email" type="email" required autoComplete="email" spellCheck={false} inputMode="email" aria-label="Email address"
+              className="input input-bordered bg-base-100 font-mono text-sm" placeholder="you@example.com" />
           </label>
           <label className="form-control">
             <span className="label-text font-mono text-xs text-base-content/60">PASSWORD</span>
-            <input name="password" type="password" required minLength={8} autoComplete={mode === "signup" ? "new-password" : "current-password"}
+            <input name="password" type="password" required minLength={8} autoComplete={mode === "signup" ? "new-password" : "current-password"} aria-label="Password"
               className="input input-bordered bg-base-100 font-mono text-sm" placeholder="8 characters minimum" />
           </label>
           {state?.error && <div role="alert" aria-live="polite" className="font-mono text-sm text-g-f">{state.error}</div>}

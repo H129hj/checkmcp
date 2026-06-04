@@ -6,6 +6,7 @@ import { billingEnabled } from "../../lib/stripe";
 export const metadata = {
   title: "Pricing — CheckMCP",
   description: "Free, Pro and Team plans for auditing, monitoring and securing your MCP servers. Start free, upgrade for private audits, more monitors and drift webhooks.",
+  alternates: { canonical: "/pricing" },
 };
 export const dynamic = "force-dynamic";
 

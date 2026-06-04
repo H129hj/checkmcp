@@ -1,4 +1,4 @@
-export const metadata = { title: "Terms of Service — CheckMCP" };
+export const metadata = { title: "Terms of Service — CheckMCP", description: "CheckMCP terms of service — accounts, subscriptions, acceptable use, refunds and liability.", alternates: { canonical: "/terms" } };
 
 const ENTITY = process.env.LEGAL_ENTITY || "[LEGAL ENTITY NAME]";
 const EMAIL = process.env.LEGAL_EMAIL || "[contact@checkmcp.dev]";
