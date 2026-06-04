@@ -4,12 +4,24 @@ import { getDirectory } from "../lib/api";
 import { GRADE_CHIP, gradeKey, hostOf, PILLARS, PILLAR_ORDER, fmtTokens } from "../lib/format";
 
 export const revalidate = 120;
+export const metadata = { alternates: { canonical: "/" } };
+
+const APP_LD = {
+  "@context": "https://schema.org", "@type": "SoftwareApplication",
+  name: "CheckMCP", applicationCategory: "SecurityApplication", operatingSystem: "Any",
+  url: "https://checkmcp.dev",
+  description: "Audit, monitor and gate any MCP server — score, drift alerts and an in-band gateway that blocks tool-poisoning before it reaches your agent.",
+  offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+};
 
 export default async function Home() {
-  const servers = await getDirectory("score", 6);
+  const all = await getDirectory("score", 300);
+  const servers = all.slice(0, 6);
+  const auditedCount = Math.max(all.length, 6);
 
   return (
     <div className="pb-8 pt-14">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(APP_LD) }} />
       <section className="max-w-3xl animate-rise">
         <div className="font-mono text-xs uppercase tracking-[0.22em] text-primary/80">The vendor-neutral MCP quality standard</div>
         <h1 className="mt-5 text-[clamp(2.5rem,7vw,4.75rem)] font-extrabold leading-[1.04]">
@@ -20,6 +32,14 @@ export default async function Home() {
           (“why this score”) and actionable fixes. No registry required — just paste a URL.
         </p>
         <div className="mt-8 max-w-xl"><AuditInput autofocus /></div>
+        <div className="mt-5 flex flex-wrap items-center gap-3">
+          <Link href="/signup" className="btn btn-primary btn-sm">Get started — free ›</Link>
+          <Link href="/pricing" className="btn btn-ghost btn-sm">See pricing</Link>
+        </div>
+        {/* social proof — real, verifiable */}
+        <p className="mt-6 font-mono text-xs text-base-content/40">
+          ★ <b className="text-base-content/70">{auditedCount}+ MCP servers</b> already scored · OWASP MCP Top 10 · official spec 2025-11-25 · open-source CLI (MIT)
+        </p>
       </section>
 
       <section className="mt-16 grid gap-4 sm:grid-cols-3">

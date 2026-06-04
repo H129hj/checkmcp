@@ -7,14 +7,28 @@ import ThemeToggle from "../components/ThemeToggle";
 
 export const viewport: Viewport = { themeColor: "#0a0a0c", colorScheme: "light dark" };
 
+const OG_TITLE = "CheckMCP — audit & secure your MCP servers";
+const OG_DESC = "Audit, monitor and gate any MCP server: an explainable MCP Score /100, drift alerts, and a gateway that blocks tool-poisoning before it reaches your agent.";
+
 export const metadata: Metadata = {
   metadataBase: new URL("https://checkmcp.dev"),
-  title: { default: "CheckMCP — quality, security & context-cost score for MCP servers", template: "%s | CheckMCP" },
-  description:
-    "Vendor-neutral audit of MCP servers: one explainable MCP Score /100 (security, tool design, schemas, context-cost, compliance, reliability) with causal attribution and actionable fixes.",
-  alternates: { canonical: "/", languages: hreflang("/") },
-  openGraph: { title: "CheckMCP", description: "The quality standard for MCP servers — one explainable /100 score.", url: "https://checkmcp.dev", siteName: "CheckMCP", type: "website" },
-  twitter: { card: "summary_large_image", title: "CheckMCP", description: "The quality standard for MCP servers." },
+  title: { default: OG_TITLE, template: "%s | CheckMCP" },
+  description: OG_DESC,
+  alternates: { languages: hreflang("/") },
+  openGraph: { title: OG_TITLE, description: OG_DESC, url: "https://checkmcp.dev", siteName: "CheckMCP", type: "website" },
+  twitter: { card: "summary_large_image", title: OG_TITLE, description: OG_DESC },
+};
+
+// JSON-LD (Organization + WebSite) — rich results
+const JSONLD = {
+  "@context": "https://schema.org",
+  "@graph": [
+    { "@type": "Organization", "name": "CheckMCP", "url": "https://checkmcp.dev", "logo": "https://checkmcp.dev/icon.png",
+      "sameAs": ["https://github.com/H129hj/checkmcp"], "email": "mailto:contact@checkmcp.dev" },
+    { "@type": "WebSite", "name": "CheckMCP", "url": "https://checkmcp.dev",
+      "description": OG_DESC,
+      "potentialAction": { "@type": "SearchAction", "target": "https://checkmcp.dev/report?url={url}", "query-input": "required name=url" } },
+  ],
 };
 
 const NAV = [
@@ -33,6 +47,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang="en" data-theme="checkmcp">
       <head>
         <script dangerouslySetInnerHTML={{ __html: NO_FLASH }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSONLD) }} />
+        {/* privacy-friendly analytics (no cookies) — register checkmcp.dev on Plausible to receive data */}
+        <script defer data-domain="checkmcp.dev" src="https://plausible.io/js/script.js" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
@@ -86,6 +103,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               <Link href="/directory" className="hover:text-base-content">Directory</Link>
               <Link href="/terms" className="hover:text-base-content">Terms</Link>
               <Link href="/privacy" className="hover:text-base-content">Privacy</Link>
+              <a href="mailto:contact@checkmcp.dev" className="hover:text-base-content">Contact</a>
+              <a href="https://github.com/H129hj/checkmcp" rel="noopener" className="hover:text-base-content">GitHub</a>
             </div>
           </div>
         </footer>

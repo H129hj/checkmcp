@@ -16,21 +16,21 @@ export default function AuditInput({ autofocus = false }: { autofocus?: boolean 
   };
   return (
     <div className="w-full">
-      <div className="join w-full shadow-lg shadow-primary/5">
+      <form className="join w-full shadow-lg shadow-primary/5" action="/report" method="get" onSubmit={(e) => { e.preventDefault(); go(); }}>
         <span className="join-item flex items-center bg-base-200 pl-4 pr-1 font-mono font-bold text-primary border border-base-content/15 border-r-0">❯</span>
         <input
           autoFocus={autofocus}
           value={url}
+          name="url"
           onChange={(e) => setUrl(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && go()}
           placeholder="paste an MCP server URL — https://…/mcp"
           spellCheck={false}
           inputMode="url"
           aria-label="MCP server URL to audit"
           className="input input-bordered join-item w-full border-l-0 bg-base-200 font-mono text-sm focus:outline-none"
         />
-        <button className="btn btn-primary join-item" onClick={() => go()}>Audit</button>
-      </div>
+        <button type="submit" className="btn btn-primary join-item">Audit</button>
+      </form>
       <div className="mt-3 flex flex-wrap items-center gap-2">
         <span className="font-mono text-xs text-base-content/40">try:</span>
         {EXAMPLES.map((e) => (
