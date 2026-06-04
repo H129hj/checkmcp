@@ -4,7 +4,7 @@ import { getDirectory } from "../lib/api";
 import { GRADE_CHIP, gradeKey, hostOf, PILLARS, PILLAR_ORDER, fmtTokens } from "../lib/format";
 
 export const revalidate = 120;
-export const metadata = { alternates: { canonical: "/" } };
+export const metadata = { alternates: { canonical: "https://checkmcp.dev/" } };
 
 const APP_LD = {
   "@context": "https://schema.org", "@type": "SoftwareApplication",

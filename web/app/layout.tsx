@@ -93,7 +93,15 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
         <footer className="mt-20 border-t border-base-content/10">
           <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-8 font-mono text-xs text-base-content/50">
-            <div className="flex flex-wrap items-center justify-between gap-3">
+            {/* social proof — real audited servers (coverage, not endorsement) */}
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-base-content/40">
+              <span className="text-base-content/60">Scoring public MCP servers from</span>
+              {["Microsoft", "Vercel", "Supabase", "Exa", "Cloudflare", "Hugging Face"].map((b) => (
+                <span key={b} className="rounded border border-base-content/15 bg-base-200/60 px-1.5 py-0.5">{b}</span>
+              ))}
+              <span className="text-base-content/60">+ 200 more</span>
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
               <span>checkmcp.dev — vendor-neutral MCP server audits</span>
               <span className="text-base-content/35">spec 2025-11-25 · OWASP MCP Top 10 · open methodology</span>
             </div>
@@ -103,7 +111,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               <Link href="/directory" className="hover:text-base-content">Directory</Link>
               <Link href="/terms" className="hover:text-base-content">Terms</Link>
               <Link href="/privacy" className="hover:text-base-content">Privacy</Link>
-              <a href="mailto:contact@checkmcp.dev" className="hover:text-base-content">Contact</a>
+              <Link href="/contact" className="hover:text-base-content">Contact</Link>
               <a href="https://github.com/H129hj/checkmcp" rel="noopener" className="hover:text-base-content">GitHub</a>
             </div>
           </div>

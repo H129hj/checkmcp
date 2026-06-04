@@ -6,6 +6,7 @@ export const revalidate = 0;
 export const metadata = {
   title: "Monitoring — MCP server drift & rug-pull",
   description: "Continuous monitoring of tracked MCP servers: tool-definition drift (rug-pull), score over time.",
+  alternates: { canonical: "/dashboard" },
 };
 
 function Sparkline({ scores }: { scores: number[] }) {
