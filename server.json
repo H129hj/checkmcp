@@ -1,0 +1,18 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-09-29/server.schema.json",
+  "name": "io.github.H129hj/checkmcp",
+  "description": "Audit any MCP server for security & quality: OWASP MCP Top 10 pass with an explainable 0-100 MCP Score",
+  "repository": { "url": "https://github.com/H129hj/checkmcp", "source": "github" },
+  "version": "0.5.0",
+  "packages": [
+    {
+      "registryType": "pypi",
+      "registryBaseUrl": "https://pypi.org",
+      "identifier": "checkmcp",
+      "version": "0.5.0",
+      "runtimeHint": "uvx",
+      "runtimeArguments": [ { "type": "positional", "value": "mcp" } ],
+      "transport": { "type": "stdio" }
+    }
+  ]
+}
