@@ -1,5 +1,7 @@
 # checkmcp
 
+[![PyPI](https://img.shields.io/pypi/v/checkmcp)](https://pypi.org/project/checkmcp/) [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE) [![GitHub Action](https://img.shields.io/badge/CI-GitHub%20Action-2088FF?logo=githubactions&logoColor=white)](action.yml) [![Web audit](https://img.shields.io/badge/web-checkmcp.dev-blue)](https://checkmcp.dev)
+
 **Vendor-neutral quality / security / context-cost audit & score for any MCP server.**
 One `uvx`/`pipx` command → an **MCP Score /100** + **causal opportunities** (why the score), Lighthouse-style.
 
