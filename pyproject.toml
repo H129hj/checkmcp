@@ -1,6 +1,6 @@
 [project]
 name = "checkmcp"
-version = "0.4.0"
+version = "0.5.0"
 description = "CheckMCP — vendor-neutral quality/security/context-cost audit & score for any MCP server."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -28,6 +28,7 @@ test = ["pytest>=7"]
 
 [project.scripts]
 checkmcp = "checkmcp.cli:main"
+checkmcp-mcp = "checkmcp.mcp_server:main"
 
 [build-system]
 requires = ["setuptools>=68"]

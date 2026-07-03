@@ -12,6 +12,24 @@ pipx run checkmcp https://mcp.context7.com/mcp --json
 checkmcp https://my-mcp.example.com/mcp --token "$TOKEN"
 ```
 
+## Use it as an MCP server
+
+`checkmcp mcp` turns the auditor itself into an MCP server (stdio) exposing one tool,
+`audit_mcp_server` — so your agent can answer *"is this MCP server safe?"* mid-conversation.
+
+```bash
+# Claude Code
+claude mcp add checkmcp -- uvx checkmcp mcp
+```
+
+```json
+// Cursor (.cursor/mcp.json) / Claude Desktop (claude_desktop_config.json)
+{ "mcpServers": { "checkmcp": { "command": "uvx", "args": ["checkmcp", "mcp"] } } }
+```
+
+Registry name: `io.github.H129hj/checkmcp` <!-- mcp-name: io.github.H129hj/checkmcp -->
+
+
 No dependencies (stdlib only). `tiktoken` optional for exact token counts.
 
 ## What it measures (7 pillars)
