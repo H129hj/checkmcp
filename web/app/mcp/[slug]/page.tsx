@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import Report from "../../../components/Report";
+import ServerFaq from "../../../components/ServerFaq";
 import { getDirectory, getScore } from "../../../lib/api";
+import { mcpFaq } from "../../../lib/faq";
 import { fmtTokens, hostOf } from "../../../lib/format";
 
 export const revalidate = 300;
@@ -46,6 +48,7 @@ export default async function McpPage({ params }: { params: { slug: string } }) 
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(ld) }} />
       <Link href="/directory" className="mb-4 inline-block font-mono text-xs text-base-content/50 hover:text-base-content">‹ directory</Link>
       <Report res={res} />
+      <ServerFaq items={mcpFaq(res)} heading={`About ${name} — FAQ`} />
     </div>
   );
 }

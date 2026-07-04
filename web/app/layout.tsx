@@ -2,7 +2,6 @@ import "./globals.css";
 import type { Metadata, Viewport } from "next";
 import Link from "next/link";
 import { getUser } from "../lib/auth";
-import { hreflang } from "../lib/i18n";
 import ThemeToggle from "../components/ThemeToggle";
 
 export const viewport: Viewport = { themeColor: "#0a0a0c", colorScheme: "light dark" };
@@ -14,7 +13,9 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://checkmcp.dev"),
   title: { default: OG_TITLE, template: "%s | CheckMCP" },
   description: OG_DESC,
-  alternates: { languages: hreflang("/") },
+  // No root-level hreflang: with a single locale it is self-referential, and inheriting
+  // hreflang("/") made every page without its own `alternates` (e.g. /gateways, /fleet,
+  // /policy) declare the homepage as its language alternate. Pages that need it set their own.
   openGraph: { title: OG_TITLE, description: OG_DESC, url: "https://checkmcp.dev", siteName: "CheckMCP", type: "website" },
   twitter: { card: "summary_large_image", title: OG_TITLE, description: OG_DESC },
 };
@@ -34,7 +35,9 @@ const JSONLD = {
 const NAV = [
   { href: "/#gateway", label: "Gateway" },
   { href: "/directory", label: "Directory" },
+  { href: "/best", label: "Best" },
   { href: "/dashboard", label: "Monitoring" },
+  { href: "/download", label: "Apps" },
   { href: "/badge", label: "Badge" },
   { href: "/pricing", label: "Pricing" },
 ];
@@ -107,8 +110,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             </div>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-base-content/10 pt-3 text-base-content/40">
               <span>© {new Date().getFullYear()} CheckMCP</span>
+              <Link href="/download" className="hover:text-base-content">Apps</Link>
               <Link href="/pricing" className="hover:text-base-content">Pricing</Link>
               <Link href="/directory" className="hover:text-base-content">Directory</Link>
+              <Link href="/best" className="hover:text-base-content">Best of</Link>
+              <Link href="/compare" className="hover:text-base-content">Compare</Link>
+              <Link href="/learn" className="hover:text-base-content">Learn</Link>
               <Link href="/terms" className="hover:text-base-content">Terms</Link>
               <Link href="/privacy" className="hover:text-base-content">Privacy</Link>
               <Link href="/contact" className="hover:text-base-content">Contact</Link>
