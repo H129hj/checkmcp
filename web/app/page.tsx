@@ -2,6 +2,16 @@ import Link from "next/link";
 import AuditInput from "../components/AuditInput";
 import { getDirectory } from "../lib/api";
 import { GRADE_CHIP, gradeKey, hostOf, PILLARS, PILLAR_ORDER, fmtTokens } from "../lib/format";
+import { COLLECTIONS } from "../lib/collections";
+
+// Curated homepage collections (strong in-body internal links — the homepage is the
+// highest-authority page, so these pass the most weight to the /best hub pages).
+const FEATURED = [
+  "safest-mcp-servers", "best-mcp-servers-overall", "most-popular-mcp-servers",
+  "best-mcp-servers-for-databases", "best-mcp-servers-for-web-scraping",
+  "best-mcp-servers-for-browser-automation", "best-mcp-servers-for-devops-and-cloud",
+  "mcp-servers-to-avoid",
+];
 
 export const revalidate = 120;
 export const metadata = { alternates: { canonical: "https://checkmcp.dev/" } };
@@ -12,6 +22,52 @@ const APP_LD = {
   url: "https://checkmcp.dev",
   description: "Audit, monitor and gate any MCP server — score, drift alerts and an in-band gateway that blocks tool-poisoning before it reaches your agent.",
   offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+};
+
+// Answer-engine optimization: visible Q&A + FAQPage schema, single-sourced so they never drift.
+const FAQ: { q: string; a: string }[] = [
+  {
+    q: "What is an MCP Score?",
+    a: "The MCP Score is a single, explainable 0–100 grade for the quality, security and context-cost of a Model Context Protocol (MCP) server. CheckMCP computes it from six weighted pillars — security, tool design, schemas, context-cost, compliance and coverage — plus reliability, which it measures and displays but does not yet weight into the score (single-shot latency is low-confidence), and attributes every penalty as measure → mechanism → effect → Δscore, so the score is auditable rather than a black box.",
+  },
+  {
+    q: "How do I check if an MCP server is safe?",
+    a: "Paste the server's endpoint URL into checkmcp.dev, or run the CLI. CheckMCP probes the live server, runs an OWASP MCP Top 10 security pass — tool poisoning, hardcoded secrets, command injection, the lethal trifecta — and behaviorally evaluates read-only tools with canary inputs to catch prompt-injection or data exfiltration in tool responses. A secret found in a schema caps the grade at D; a failed handshake caps it at F.",
+  },
+  {
+    q: "How do I audit an MCP server from the command line?",
+    a: "Install nothing and run: uvx checkmcp https://your-mcp.example.com/mcp — it prints an MCP Score /100 with the causal reasons behind it. The CLI is open-source (MIT) and stdlib-only, and it also runs in CI via the GitHub Action (uses: H129hj/checkmcp@v1) to fail a build on a score regression or a rug-pull.",
+  },
+  {
+    q: "What does CheckMCP check for?",
+    a: "Live protocol compliance (Streamable HTTP and legacy HTTP+SSE, protocol-version gap, JSON-RPC error conformance, OAuth 2.1 discovery), the OWASP MCP Top 10 security risks, tool-design sprawl, schema and description completeness, the token cost paid on every tools/list call, and coverage of all three MCP primitives (tools, resources, prompts). It also grades the backing repository as a separate Repo-Quality Score /100.",
+  },
+  {
+    q: "How is the MCP Score calculated?",
+    a: "Six weighted pillars are scored against the real MCP ecosystem (percentile-calibrated — for example median ~7 tools, p95 ~42) — reliability is measured and shown as a seventh pillar but not yet credited — with hard floors: a secret in a schema caps the grade at D and a failed handshake caps it at F. The methodology is open and every deduction is traceable to a measurable cause.",
+  },
+  {
+    q: "Is CheckMCP free?",
+    a: "Yes — auditing and the MCP Score are free, including the open-source CLI and the public directory. Paid Pro and Team plans add continuous monitoring, behavioral evals on demand, and the in-band gateway that blocks tool-poisoning at runtime.",
+  },
+  {
+    q: "Can I continuously monitor an MCP server for rug-pulls and tool drift?",
+    a: "Yes. CheckMCP pins a fingerprint of each tracked server's tools and schemas, re-checks and behaviorally re-evaluates them on drift, and alerts you by webhook when a tool silently changes (a rug-pull) or the score crosses a threshold you set.",
+  },
+  {
+    q: "What are tool poisoning and the lethal trifecta?",
+    a: "Tool poisoning is a malicious or compromised MCP tool whose description or output manipulates the agent — hidden instructions, data-exfiltration prompts, and the like. The lethal trifecta is the dangerous combination of an agent having access to private data, exposure to untrusted content, and the ability to communicate externally — the precondition for exfiltration. CheckMCP detects both statically and at runtime, and the in-band gateway strips injected or exfiltrating tool responses before your agent ever sees them.",
+  },
+];
+
+const FAQ_LD = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: FAQ.map((f) => ({
+    "@type": "Question",
+    name: f.q,
+    acceptedAnswer: { "@type": "Answer", text: f.a },
+  })),
 };
 
 export default async function Home() {
@@ -124,11 +180,38 @@ export default async function Home() {
         </section>
       )}
 
+      <section className="mt-16">
+        <div className="mb-4 flex items-baseline justify-between">
+          <h2 className="text-2xl font-extrabold">Browse by category</h2>
+          <Link href="/best" className="font-mono text-sm text-primary hover:underline">all collections ›</Link>
+        </div>
+        <p className="mb-4 max-w-2xl text-base-content/60">
+          Independently-audited rankings of the best and safest MCP servers by use case — and head-to-head{" "}
+          <Link href="/compare" className="text-primary hover:underline">comparisons</Link>.
+        </p>
+        <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
+          {FEATURED.map((slug) => {
+            const c = COLLECTIONS.find((x) => x.slug === slug);
+            if (!c) return null;
+            return (
+              <Link
+                key={slug}
+                href={`/best/${slug}`}
+                className="card border border-base-content/10 bg-base-200/60 p-4 transition hover:border-primary/40 hover:bg-base-100/40"
+              >
+                <div className="text-sm font-bold leading-snug">{c.title}</div>
+                <div className="mt-2 font-mono text-xs text-primary/70">{c.serverSlugs.length + c.repoSlugs.length} servers ›</div>
+              </Link>
+            );
+          })}
+        </div>
+      </section>
+
       <section id="methodology" className="mt-20 scroll-mt-24">
         <div className="font-mono text-xs uppercase tracking-[0.22em] text-primary/80">Open methodology</div>
         <h2 className="mb-2 mt-3 text-3xl font-extrabold">How the MCP Score is computed</h2>
         <p className="mb-6 max-w-xl text-lg text-base-content/60">
-          Seven weighted pillars, hard floors (secret-in-schema → cap D, failed handshake → cap F), and a traceable attribution for every penalty.
+          Six weighted pillars (reliability shown but not yet credited), hard floors (secret-in-schema → cap D, failed handshake → cap F), and a traceable attribution for every penalty.
         </p>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {PILLAR_ORDER.map((k) => (
@@ -143,6 +226,27 @@ export default async function Home() {
         <p className="mt-6 font-mono text-xs text-base-content/40">
           Calibrated on the real MCP ecosystem · official spec 2025-11-25 · annotations, OAuth 2.1/PKCE, cursor pagination, JSON-RPC errors.
         </p>
+      </section>
+
+      <section id="faq" className="mt-20 scroll-mt-24">
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(FAQ_LD) }} />
+        <div className="font-mono text-xs uppercase tracking-[0.22em] text-primary/80">Answers</div>
+        <h2 className="mb-2 mt-3 text-3xl font-extrabold">MCP security &amp; auditing — FAQ</h2>
+        <p className="mb-6 max-w-xl text-lg text-base-content/60">
+          Common questions about checking, scoring and protecting Model Context Protocol servers.
+        </p>
+        <div className="space-y-3">
+          {FAQ.map((f) => (
+            <details key={f.q} className="group card border border-base-content/10 bg-base-200/60">
+              <summary className="flex cursor-pointer items-center justify-between gap-3 p-5 text-base font-bold">
+                <span>{f.q}</span>
+                <span className="font-mono text-primary transition group-open:rotate-45">+</span>
+              </summary>
+              <div className="px-5 pb-5 text-sm leading-relaxed text-base-content/60">{f.a}</div>
+            </details>
+          ))}
+        </div>
+        <Link href="/learn" className="mt-5 inline-block font-mono text-sm text-primary hover:underline">Browse all MCP security &amp; quality concepts ›</Link>
       </section>
     </div>
   );

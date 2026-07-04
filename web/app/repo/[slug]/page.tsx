@@ -3,7 +3,9 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import ScoreRing from "../../../components/ScoreRing";
 import CopyButton from "../../../components/CopyButton";
+import ServerFaq from "../../../components/ServerFaq";
 import { getRepo } from "../../../lib/api";
+import { repoFaq } from "../../../lib/faq";
 import { GRADE_CHIP, gradeKey, REPO_PILLARS, REPO_PILLAR_ORDER } from "../../../lib/format";
 
 export const revalidate = 300;
@@ -105,6 +107,8 @@ export default async function RepoPage({ params }: { params: { slug: string } })
             </div>
           </div>
         </section>
+
+        <ServerFaq items={repoFaq(r)} heading={`About ${r.name || r.repo} — FAQ`} />
       </div>
     </div>
   );

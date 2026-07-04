@@ -5,8 +5,9 @@ import { hreflang } from "../../lib/i18n";
 
 export const revalidate = 60;
 export const metadata = {
-  title: "Directory of audited MCP servers",
-  description: "Public ranking of MCP servers: live MCP Score (endpoints) and Repo-Quality Score (repo/stdio).",
+  title: "MCP Server Directory & Registry — Audited & Ranked",
+  description:
+    "The MCP server directory and registry: Model Context Protocol servers independently audited and ranked — live MCP Score for endpoints, Repo-Quality Score for repo/stdio. Browse the full list by security, quality and popularity.",
   alternates: { canonical: "/directory", languages: hreflang("/directory") },
 };
 

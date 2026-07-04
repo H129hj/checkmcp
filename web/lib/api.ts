@@ -39,5 +39,14 @@ export interface RepoRow {
 export const getRepos = (order = "score", limit = 300, source?: string) =>
   getJSON<{ repos: RepoRow[] }>(`/api/repos?order=${order}&limit=${limit}${source ? `&source=${source}` : ""}`, 60).then((d) => d?.repos ?? []);
 
+// Error-aware variants: null = upstream/API failure (fetch threw or non-2xx), [] would mean a
+// genuinely empty but reachable result. Lets callers tell "API down" from "no data" and avoid
+// rendering a false-empty page that would emit a 404 (see resolveCollection/resolveComparison).
+export const getDirectoryOrNull = (order = "score", limit = 200) =>
+  getJSON<{ servers: DirRow[] }>(`/api/directory?order=${order}&limit=${limit}`, 60).then((d) => d?.servers ?? null);
+
+export const getReposOrNull = (order = "score", limit = 300, source?: string) =>
+  getJSON<{ repos: RepoRow[] }>(`/api/repos?order=${order}&limit=${limit}${source ? `&source=${source}` : ""}`, 60).then((d) => d?.repos ?? null);
+
 export const getRepo = (slug: string) =>
   getJSON<any>(`/api/repo?slug=${encodeURIComponent(slug)}`, 300);

@@ -99,7 +99,8 @@ def _handle(msg):
     is_notification = mid is None
 
     if method == "initialize":
-        req = (msg.get("params") or {}).get("protocolVersion")
+        params = msg.get("params")
+        req = params.get("protocolVersion") if isinstance(params, dict) else None
         proto = req if req in PROTOCOL_VERSIONS else PROTOCOL_VERSIONS[0]
         return {"jsonrpc": "2.0", "id": mid, "result": {
             "protocolVersion": proto,
@@ -117,9 +118,9 @@ def _handle(msg):
     if method == "tools/list":
         return {"jsonrpc": "2.0", "id": mid, "result": {"tools": [TOOL]}}
     if method == "tools/call":
-        params = msg.get("params") or {}
+        params = msg.get("params") if isinstance(msg.get("params"), dict) else {}
         name = params.get("name")
-        args = params.get("arguments") or {}
+        args = params.get("arguments") if isinstance(params.get("arguments"), dict) else {}
         if name != TOOL["name"]:
             return {"jsonrpc": "2.0", "id": mid,
                     "error": {"code": -32602, "message": f"Unknown tool: {name}"}}
@@ -140,8 +141,26 @@ def _handle(msg):
             "error": {"code": -32601, "message": f"Method not found: {method}"}}
 
 
+def _error(mid, code, message):
+    return {"jsonrpc": "2.0", "id": mid, "error": {"code": code, "message": message}}
+
+
+def _write(out, resp):
+    """Écrit une réponse JSON (une ligne). Préfère l'UTF-8 littéral ; retombe sur
+    l'échappement ASCII si le flux ne peut pas encoder l'UTF-8 (ex. stdout cp1252
+    non reconfigurable sous Windows) — jamais un UnicodeEncodeError non géré."""
+    payload = json.dumps(resp, ensure_ascii=False)
+    try:
+        out.write(payload + "\n")
+    except UnicodeEncodeError:
+        out.write(json.dumps(resp, ensure_ascii=True) + "\n")
+    out.flush()
+
+
 def serve(inp=None, out=None):
-    """Boucle stdio : une ligne JSON par message. Retourne le code de sortie."""
+    """Boucle stdio : un message JSON-RPC par ligne. Un message malformé (JSON
+    invalide, JSON non-objet, ou une requête qui lève une exception) renvoie une
+    erreur JSON-RPC et la session continue — un seul message ne tue jamais le serveur."""
     inp = inp or sys.stdin
     out = out or sys.stdout
     for line in inp:
@@ -151,18 +170,30 @@ def serve(inp=None, out=None):
         try:
             msg = json.loads(line)
         except ValueError:
-            out.write(json.dumps({"jsonrpc": "2.0", "id": None,
-                                  "error": {"code": -32700, "message": "Parse error"}}) + "\n")
-            out.flush()
+            _write(out, _error(None, -32700, "Parse error"))
             continue
-        resp = _handle(msg)
+        if not isinstance(msg, dict):
+            # JSON valide mais pas un objet (batch array, scalaire) : non supporté.
+            _write(out, _error(None, -32600, "Invalid Request: expected a JSON-RPC object"))
+            continue
+        try:
+            resp = _handle(msg)
+        except Exception as e:  # une requête ne doit jamais faire tomber la session
+            resp = _error(msg.get("id"), -32603, f"Internal error: {e}")
         if resp is not None:
-            out.write(json.dumps(resp, ensure_ascii=False) + "\n")
-            out.flush()
+            _write(out, resp)
     return 0
 
 
 def main(argv=None):
+    # Force l'UTF-8 sur les flux stdio : la sortie d'audit contient des caractères
+    # non-ASCII (Δ → —) et le transport MCP est UTF-8 ; sous Windows le flux par
+    # défaut (cp1252) lèverait sinon un UnicodeEncodeError au premier findings.
+    for stream in (sys.stdin, sys.stdout):
+        try:
+            stream.reconfigure(encoding="utf-8")
+        except (AttributeError, ValueError):
+            pass
     print(f"checkmcp mcp server v{__version__} — stdio, tool: audit_mcp_server", file=sys.stderr)
     return serve()
 
