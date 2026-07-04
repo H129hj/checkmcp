@@ -1,32 +1,34 @@
 <!-- mcp-name: io.github.H129hj/checkmcp -->
 
-# checkmcp
+# CheckMCP
 
-[![PyPI](https://img.shields.io/pypi/v/checkmcp)](https://pypi.org/project/checkmcp/) [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE) [![GitHub Action](https://img.shields.io/badge/CI-GitHub%20Action-2088FF?logo=githubactions&logoColor=white)](action.yml) [![Web audit](https://img.shields.io/badge/web-checkmcp.dev-blue)](https://checkmcp.dev)
+[![PyPI](https://img.shields.io/pypi/v/audit-mcp)](https://pypi.org/project/audit-mcp/) [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE) [![GitHub Action](https://img.shields.io/badge/CI-GitHub%20Action-2088FF?logo=githubactions&logoColor=white)](action.yml) [![Web audit](https://img.shields.io/badge/web-checkmcp.dev-blue)](https://checkmcp.dev)
 
 **Vendor-neutral quality / security / context-cost audit & score for any MCP server.**
 One `uvx`/`pipx` command → an **MCP Score /100** + **causal opportunities** (why the score), Lighthouse-style.
 
+> Installed from PyPI as **`audit-mcp`** (the name `checkmcp` was already taken); the command is `audit-mcp`. Brand, site and repo remain **CheckMCP** / checkmcp.dev.
+
 ```bash
-uvx checkmcp https://mcp.deepwiki.com/mcp
+uvx audit-mcp https://mcp.deepwiki.com/mcp
 # or
-pipx run checkmcp https://mcp.context7.com/mcp --json
-checkmcp https://my-mcp.example.com/mcp --token "$TOKEN"
+pipx run audit-mcp https://mcp.context7.com/mcp --json
+audit-mcp https://my-mcp.example.com/mcp --token "$TOKEN"
 ```
 
 ## Use it as an MCP server
 
-`checkmcp mcp` turns the auditor itself into an MCP server (stdio) exposing one tool,
+`audit-mcp mcp` turns the auditor itself into an MCP server (stdio) exposing one tool,
 `audit_mcp_server` — so your agent can answer *"is this MCP server safe?"* mid-conversation.
 
 ```bash
 # Claude Code
-claude mcp add checkmcp -- uvx checkmcp mcp
+claude mcp add audit-mcp -- uvx audit-mcp mcp
 ```
 
 ```json
 // Cursor (.cursor/mcp.json) / Claude Desktop (claude_desktop_config.json)
-{ "mcpServers": { "checkmcp": { "command": "uvx", "args": ["checkmcp", "mcp"] } } }
+{ "mcpServers": { "audit-mcp": { "command": "uvx", "args": ["audit-mcp", "mcp"] } } }
 ```
 
 Registry name: `io.github.H129hj/checkmcp` <!-- mcp-name: io.github.H129hj/checkmcp -->
@@ -103,7 +105,7 @@ hosted gateway at **[checkmcp.dev](https://checkmcp.dev)**.
 
 ## Honest limitations
 - Percentile bands come from a growing corpus (one+ registries) — widening over time.
-- Exact tokens with `pipx install "checkmcp[exact-tokens]"` (cl100k_base); otherwise chars/4 approximation.
+- Exact tokens with `pipx install "audit-mcp[exact-tokens]"` (cl100k_base); otherwise chars/4 approximation.
 - Pillar weights are expert priors. `python -m checkmcp.calibrate samples.json` validates them against a labeled agent-success sample (per-pillar correlation + OLS-suggested weights + construct-validity R²) — supply real outcomes to close the loop.
 
 MIT.

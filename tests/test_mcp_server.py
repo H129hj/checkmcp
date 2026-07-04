@@ -19,7 +19,7 @@ def test_initialize_and_list():
         {"jsonrpc": "2.0", "id": 2, "method": "tools/list"},
     ])
     assert rs[0]["result"]["protocolVersion"] == "2025-03-26"  # echoes a supported version
-    assert rs[0]["result"]["serverInfo"]["name"] == "checkmcp"
+    assert rs[0]["result"]["serverInfo"]["name"] == "audit-mcp"
     tools = rs[1]["result"]["tools"]
     assert len(tools) == 1 and tools[0]["name"] == "audit_mcp_server"
     assert tools[0]["inputSchema"]["additionalProperties"] is False

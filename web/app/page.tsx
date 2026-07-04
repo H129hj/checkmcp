@@ -36,7 +36,7 @@ const FAQ: { q: string; a: string }[] = [
   },
   {
     q: "How do I audit an MCP server from the command line?",
-    a: "Install nothing and run: uvx checkmcp https://your-mcp.example.com/mcp — it prints an MCP Score /100 with the causal reasons behind it. The CLI is open-source (MIT) and stdlib-only, and it also runs in CI via the GitHub Action (uses: H129hj/checkmcp@v1) to fail a build on a score regression or a rug-pull.",
+    a: "Install nothing and run: uvx audit-mcp https://your-mcp.example.com/mcp — it prints an MCP Score /100 with the causal reasons behind it. The CLI is open-source (MIT) and stdlib-only, and it also runs in CI via the GitHub Action (uses: H129hj/checkmcp@v1) to fail a build on a score regression or a rug-pull.",
   },
   {
     q: "What does CheckMCP check for?",

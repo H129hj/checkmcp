@@ -9,7 +9,7 @@
     {
       "registryType": "pypi",
       "registryBaseUrl": "https://pypi.org",
-      "identifier": "checkmcp",
+      "identifier": "audit-mcp",
       "version": "0.5.0",
       "runtimeHint": "uvx",
       "transport": { "type": "stdio" },

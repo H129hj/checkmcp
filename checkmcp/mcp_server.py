@@ -88,7 +88,7 @@ def _run_audit(url, token=None):
     else:
         lines.append("## Findings\n- none — clean audit")
     lines.append("")
-    lines.append(f"Full methodology & directory: https://checkmcp.dev (CLI: `uvx checkmcp {url}`)")
+    lines.append(f"Full methodology & directory: https://checkmcp.dev (CLI: `uvx audit-mcp {url}`)")
     return "\n".join(lines), False
 
 
@@ -105,7 +105,7 @@ def _handle(msg):
         return {"jsonrpc": "2.0", "id": mid, "result": {
             "protocolVersion": proto,
             "capabilities": {"tools": {}},
-            "serverInfo": {"name": "checkmcp", "title": "CheckMCP — MCP server auditor",
+            "serverInfo": {"name": "audit-mcp", "title": "CheckMCP — MCP server auditor",
                            "version": __version__},
             "instructions": ("Use audit_mcp_server to score any remote MCP server for security and "
                              "quality before trusting it. One call per server; results are safe to "
@@ -194,7 +194,7 @@ def main(argv=None):
             stream.reconfigure(encoding="utf-8")
         except (AttributeError, ValueError):
             pass
-    print(f"checkmcp mcp server v{__version__} — stdio, tool: audit_mcp_server", file=sys.stderr)
+    print(f"audit-mcp mcp server v{__version__} — stdio, tool: audit_mcp_server", file=sys.stderr)
     return serve()
 
 

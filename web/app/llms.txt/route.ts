@@ -37,7 +37,7 @@ Every penalty is attributed as measure → mechanism → effect → Δscore, so 
 
 ## Use it
 - Hosted app, public directory and live badges: https://checkmcp.dev
-- Audit any server in one command: \`uvx checkmcp https://your-mcp.example.com/mcp\`
+- Audit any server in one command: \`uvx audit-mcp https://your-mcp.example.com/mcp\`
 - CI / GitHub Action: \`uses: H129hj/checkmcp@v1\` (fails the build on score regression or rug-pull).
 
 ## Key pages

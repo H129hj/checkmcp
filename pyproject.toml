@@ -1,5 +1,5 @@
 [project]
-name = "checkmcp"
+name = "audit-mcp"
 version = "0.5.0"
 description = "CheckMCP — vendor-neutral quality/security/context-cost audit & score for any MCP server."
 readme = "README.md"
@@ -26,9 +26,12 @@ dependencies = []  # stdlib-only core (urllib). tiktoken optional for exact toke
 exact-tokens = ["tiktoken>=0.7"]
 test = ["pytest>=7"]
 
+# Distribution is `audit-mcp` on PyPI (the name `checkmcp` is blocked — an unrelated
+# `check-mcp` already exists and PyPI treats them as identical). The import package,
+# brand (CheckMCP), domain and repo stay `checkmcp`; only the pip name + CLI command change.
 [project.scripts]
-checkmcp = "checkmcp.cli:main"
-checkmcp-mcp = "checkmcp.mcp_server:main"
+audit-mcp = "checkmcp.cli:main"
+audit-mcp-mcp = "checkmcp.mcp_server:main"
 
 [build-system]
 requires = ["setuptools>=68"]

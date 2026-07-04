@@ -96,10 +96,10 @@ def main(argv=None):
     if argv is None:
         argv = sys.argv[1:]
     if argv and argv[0] == "mcp":
-        # `checkmcp mcp` : démarre le mode serveur MCP (stdio) — voir mcp_server.py
+        # `audit-mcp mcp` : démarre le mode serveur MCP (stdio) — voir mcp_server.py
         from .mcp_server import main as mcp_main
         return mcp_main(argv[1:])
-    ap = argparse.ArgumentParser(prog="checkmcp", description="Audit & score the quality / security / context-cost of an MCP server.")
+    ap = argparse.ArgumentParser(prog="audit-mcp", description="Audit & score the quality / security / context-cost of an MCP server.")
     ap.add_argument("url", help="MCP endpoint URL (streamable-http or SSE), e.g. https://mcp.deepwiki.com/mcp")
     ap.add_argument("--token", help="Bearer token if the server requires auth", default=None)
     ap.add_argument("--json", action="store_true", help="JSON output (report.json)")
