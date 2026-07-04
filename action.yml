@@ -44,4 +44,4 @@ runs:
         [ -n "$CKMCP_BASELINE" ] && args+=(--baseline "$CKMCP_BASELINE")
         [ -n "$CKMCP_REPO" ] && args+=(--repo "$CKMCP_REPO")
         [ -n "$CKMCP_TOKEN" ] && args+=(--token "$CKMCP_TOKEN")
-        checkmcp "${args[@]}"
+        audit-mcp "${args[@]}"
