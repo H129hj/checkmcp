@@ -1,0 +1,82 @@
+{
+  "version": "1",
+  "note": "Canonical MCP security ruleset — GENERATED from the CheckMCP Python engine (scripts/gen_security_ruleset.py); compiled by both Python and the MCPizy JS proxy. Do not hand-edit; change evals.py/security.py then regenerate.",
+  "big_chars": 60000,
+  "output_rules": [
+    {
+      "id": "injection",
+      "type": "active_prompt_injection",
+      "severity": "HIGH",
+      "flags": "i",
+      "alts": [
+        "ignore (all |the )?(previous|prior|above) (instructions|prompts?)",
+        "disregard (the |all )?(previous|above)",
+        "you are now",
+        "new instructions?:",
+        "system prompt",
+        "do not (tell|inform|mention to) the (user|human)",
+        "</?(system|important|secret|admin)>",
+        "assistant must",
+        "forget (everything|your)",
+        "reveal (your|the) (system|prompt|instructions)",
+        "print (your )?(system )?prompt",
+        "ignor(?:e|ez) (?:toutes |les )?(?:instructions|consignes)",
+        "oubli(?:e|ez) (?:tout|vos)",
+        "vous êtes (?:maintenant|désormais)",
+        "ne (?:dis|dites|révélez) (?:pas|rien)",
+        "ignora (?:las |todas las )?(?:instrucciones|órdenes)",
+        "olvida (?:todo|tus)",
+        "eres ahora",
+        "ignoriere (?:alle |die )?(?:vorherigen|obigen)",
+        "vergiss (?:alles|deine)",
+        "du bist jetzt"
+      ],
+      "detail": "Tool output contains agent-directed instructions (tool-response poisoning)."
+    },
+    {
+      "id": "exfil",
+      "type": "exfiltration_vector",
+      "severity": "HIGH",
+      "flags": "i",
+      "confidence": 0.8,
+      "pattern": "(send (it |this |the (data|result|secret|token|key)).{0,40}(to|http)|(curl|fetch|POST|GET|wget)\\s+https?://|exfiltrat|(api[_-]?key|token|secret|password|credential)s?.{0,30}(to|send|post|upload)|(envoy(?:e|ez)|transmet(?:s|tez)).{0,40}(http|adresse)|https?://[^\\s\\\"']{0,60}\\?(.{0,40})(data|token|key|secret)=)",
+      "detail": "Tool output pushes the agent to send data to an external destination."
+    },
+    {
+      "id": "secret",
+      "type": "secret_in_output",
+      "severity": "HIGH",
+      "flags": "",
+      "confidence": 0.9,
+      "pattern": "(AKIA[0-9A-Z]{16}|sk-[A-Za-z0-9]{20,}|sk_live_[0-9A-Za-z]{20,}|gh[pousr]_[A-Za-z0-9]{20,}|xox[baprs]-[A-Za-z0-9-]{10,}|AIza[0-9A-Za-z\\-_]{30,}|ya29\\.[0-9A-Za-z\\-_]{20,}|-----BEGIN [A-Z ]*PRIVATE KEY-----|eyJ[A-Za-z0-9_-]{10,}\\.[A-Za-z0-9_-]{10,}\\.[A-Za-z0-9_-]{6,})",
+      "detail": "A credential-shaped string was returned in the tool output."
+    },
+    {
+      "id": "pii",
+      "type": "pii_in_output",
+      "severity": "LOW",
+      "flags": "",
+      "confidence": 0.4,
+      "pattern": "\\b[\\w.+-]+@[\\w-]+\\.[\\w.-]+\\b|\\b(?:\\d[ -]?){13,16}\\b",
+      "detail": "Output contains email/number patterns resembling PII."
+    }
+  ],
+  "descriptor_rules": [
+    {
+      "id": "inject_static",
+      "owasp": "MCP03",
+      "severity": "CRITICAL",
+      "flags": "i",
+      "pattern": "(ignore (the )?(previous|prior|above)|disregard (the )?(previous|prior)|<\\|im_start\\|>|</?system>|\\[/?INST\\]|override (the )?(previous |prior )?instruction|do ?n['o]?t (tell|mention|reveal|disclose|inform|notify|warn) (the )?(user|human|operator)|(without|never) (telling|informing|notifying|alerting) (the )?(user|human)|you (must|should|need to) (always |secretly |silently )?(send|forward|copy|cc|email|post|upload|exfiltrat|leak|transmit|include your)|secretly|exfiltrat|\\bsystem prompt\\b)",
+      "issue": "injected instruction (tool poisoning) in the description/schema"
+    },
+    {
+      "id": "secret_val",
+      "owasp": "MCP01",
+      "severity": "CRITICAL",
+      "flags": "",
+      "pattern": "(sk-[A-Za-z0-9]{12,}|ghp_[A-Za-z0-9]{12,}|AKIA[0-9A-Z]{12,}|-----BEGIN [A-Z ]*PRIVATE KEY|xox[baprs]-[0-9A-Za-z-]{10,})",
+      "issue": "hardcoded secret/key in the tool schema or an example"
+    }
+  ]
+}
